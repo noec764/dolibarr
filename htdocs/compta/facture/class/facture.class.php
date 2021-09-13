@@ -678,8 +678,8 @@ class Facture extends CommonInvoice
 		$sql .= ", ".($this->fk_facture_source ? "'".$this->db->escape($this->fk_facture_source)."'" : "null");
 		$sql .= ", ".($user->id > 0 ? (int) $user->id : "null");
 		$sql .= ", ".($this->fk_project ? $this->fk_project : "null");
-		$sql .= ", ".$this->cond_reglement_id;
-		$sql .= ", ".$this->mode_reglement_id;
+		$sql .= ", ".((int) $this->cond_reglement_id);
+		$sql .= ", ".((int) $this->mode_reglement_id);
 		$sql .= ", '".$this->db->idate($this->date_lim_reglement)."'";
 		$sql .= ", ".(isset($this->model_pdf) ? "'".$this->db->escape($this->model_pdf)."'" : "null");
 		$sql .= ", ".($this->situation_cycle_ref ? "'".$this->db->escape($this->situation_cycle_ref)."'" : "null");
@@ -1625,10 +1625,10 @@ class Facture extends CommonInvoice
 		}
 
 		dol_syslog(get_class($this)."::fetch", LOG_DEBUG);
-		$result = $this->db->query($sql);
-		if ($result) {
-			if ($this->db->num_rows($result)) {
-				$obj = $this->db->fetch_object($result);
+		$resql = $this->db->query($sql);
+		if ($resql) {
+			if ($this->db->num_rows($resql)) {
+				$obj = $this->db->fetch_object($resql);
 
 				$this->id = $obj->rowid;
 				$this->entity = $obj->entity;
@@ -1730,14 +1730,18 @@ class Facture extends CommonInvoice
 					$this->error = $this->db->error();
 					return -3;
 				}
+
+				$this->db->free($resql);
+
 				return 1;
 			} else {
 				$this->error = 'Invoice with id='.$rowid.' or ref='.$ref.' or ref_ext='.$ref_ext.' not found';
-				dol_syslog(get_class($this)."::fetch Error ".$this->error, LOG_ERR);
+
+				dol_syslog(__METHOD__ . $this->error, LOG_WARNING);
 				return 0;
 			}
 		} else {
-			$this->error = $this->db->error();
+			$this->error = $this->db->lasterror();
 			return -1;
 		}
 	}

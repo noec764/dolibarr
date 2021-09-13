@@ -2001,6 +2001,11 @@ abstract class CommonObject
 			return 1;
 		}
 
+		// For backward compatibility
+		if ($this->table_element == 'facture_rec' && $fieldid == 'title') {
+			$fieldid = 'titre';
+		}
+
 		// Security on socid
 		$socid = 0;
 		if ($user->socid > 0) {
@@ -6698,9 +6703,9 @@ abstract class CommonObject
 							foreach ($fields_label as $field_toshow) {
 								$translabel = $langs->trans($obj->$field_toshow);
 								if ($translabel != $obj->$field_toshow) {
-									$labeltoshow = dol_trunc($translabel, 18).' ';
+									$labeltoshow = dol_trunc($translabel).' ';
 								} else {
-									$labeltoshow = dol_trunc($obj->$field_toshow, 18).' ';
+									$labeltoshow = dol_trunc($obj->$field_toshow).' ';
 								}
 							}
 							$out .= '<option value="'.$obj->rowid.'" selected>'.$labeltoshow.'</option>';
@@ -6710,7 +6715,7 @@ abstract class CommonObject
 								if ($translabel != $obj->{$InfoFieldList[1]}) {
 									$labeltoshow = dol_trunc($translabel, 18);
 								} else {
-									$labeltoshow = dol_trunc($obj->{$InfoFieldList[1]}, 18);
+									$labeltoshow = dol_trunc($obj->{$InfoFieldList[1]});
 								}
 							}
 							if (empty($labeltoshow)) {
@@ -7506,7 +7511,7 @@ abstract class CommonObject
 
 						if ($display_type == 'card') {
 							$out .= '<tr '.($html_id ? 'id="'.$html_id.'" ' : '').$csstyle.' class="valuefieldcreate '.$class.$this->element.'_extras_'.$key.' trextrafields_collapse'.$extrafields_collapse_num.(!empty($this->id)?'_'.$this->id:'').'" '.$domData.' >';
-							if (!empty($conf->global->MAIN_VIEW_LINE_NUMBER) && $action == 'view') {
+							if (!empty($conf->global->MAIN_VIEW_LINE_NUMBER) && ($action == 'view' || $action == 'editline')) {
 								$out .= '<td></td>';
 							}
 							$out .= '<td class="wordbreak';
