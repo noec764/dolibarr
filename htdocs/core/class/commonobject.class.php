@@ -4822,14 +4822,24 @@ abstract class CommonObject
 		$i = 0;
 
 		if (!empty($this->lines)) {
+            $num = count($this->lines);
+
 			foreach ($this->lines as $line) {
-				if (is_object($hookmanager) && (($line->product_type == 9 && !empty($line->special_code)) || !empty($line->fk_parent_line))) {
+                $reshook = null;
+
+				if (is_object($hookmanager)) {
+                    $action = '';
+
 					if (empty($line->fk_parent_line)) {
-						$parameters = array('line'=>$line, 'i'=>$i);
-						$action = '';
-						$hookmanager->executeHooks('printOriginObjectLine', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
-					}
-				} else {
+						$parameters = array('line' => $line, 'num' => $num, 'i' => $i, 'restrictlist' => $restrictlist, 'selectedLines' => $selectedLines);
+						$reshook = $hookmanager->executeHooks('printOriginObjectLine', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
+					} else {
+						$parameters = array('line' => $line, 'num' => $num, 'i' => $i, 'restrictlist' => $restrictlist, 'selectedLines' => $selectedLines, 'fk_parent_line' => $line->fk_parent_line);
+						$reshook = $hookmanager->executeHooks('printOriginObjectSubLine', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
+                    }
+				}
+
+                if (empty($reshook)) {
 					$this->printOriginLine($line, '', $restrictlist, '/core/tpl', $selectedLines);
 				}
 
