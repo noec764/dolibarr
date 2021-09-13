@@ -314,8 +314,8 @@ if (empty($reshook)) {
 
 			$id = $object->create($user);
 			if ($id > 0) {
-				if (GETPOST('password')) {
-					$object->setPassword($user, GETPOST('password'));
+				if (GETPOST('password', 'none')) {
+					$object->setPassword($user, GETPOST('password', 'none'));
 				}
 				if (!empty($conf->categorie->enabled)) {
 					// Categories association
@@ -1421,10 +1421,12 @@ if ($action == 'create' || $action == 'adduserldap') {
 			if ($object->socid > 0) {
 				$type = $langs->trans("External");
 			}
+			print '<span class="badgeneutral">';
 			print $type;
 			if ($object->ldap_sid) {
 				print ' ('.$langs->trans("DomainUser").')';
 			}
+			print '</span>';
 			print '</td></tr>'."\n";
 
 			// Ldap sid
@@ -1435,7 +1437,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Employee
-			print '<tr><td>'.$langs->trans("Employee").'</td><td colspan="2">';
+			print '<tr><td>'.$langs->trans("Employee").'</td><td>';
 			print '<input type="checkbox" disabled name="employee" value="1"'.($object->employee ? ' checked="checked"' : '').'>';
 			//print yn($object->employee);
 			print '</td></tr>'."\n";
@@ -1449,8 +1451,12 @@ if ($action == 'create' || $action == 'adduserldap') {
 				print '<span class="opacitymedium">'.$langs->trans("None").'</span>';
 			} else {
 				$huser = new User($db);
-				$huser->fetch($object->fk_user);
-				print $huser->getNomUrl(1);
+				if ($object->fk_user > 0) {
+					$huser->fetch($object->fk_user);
+					print $huser->getNomUrl(1);
+				} else {
+					print '<span class="opacitymedium">'.$langs->trans("None").'</span>';
+				}
 			}
 			print '</td>';
 			print "</tr>\n";
@@ -1534,7 +1540,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 				// Salary
 				print '<tr><td>'.$langs->trans("Salary").'</td>';
 				print '<td>';
-				print ($object->salary != '' ? img_picto('', 'salary', 'class="pictofixedwidth paddingright"').price($object->salary, '', $langs, 1, -1, -1, $conf->currency) : '');
+				print ($object->salary != '' ? img_picto('', 'salary', 'class="pictofixedwidth paddingright"').'<span class="amount">'.price($object->salary, '', $langs, 1, -1, -1, $conf->currency) : '').'</span>';
 				print '</td>';
 				print "</tr>\n";
 			}
@@ -1797,7 +1803,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 				print dol_print_date($object->datepreviouslogin, "dayhour").' <span class="opacitymedium">('.$langs->trans("Previous").')</span>, ';
 			}
 			if ($object->datelastlogin) {
-				print dol_print_date($object->datelastlogin, "dayhour").' <span class="opacitymedium">('.$langs->trans("Current").')</span>';
+				print dol_print_date($object->datelastlogin, "dayhour").' <span class="opacitymedium">('.$langs->trans("Currently").')</span>';
 			}
 			print '</td>';
 			print "</tr>\n";

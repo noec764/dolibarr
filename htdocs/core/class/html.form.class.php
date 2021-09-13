@@ -589,6 +589,7 @@ class Form
 		if (!$htmltext) {
 			return $text;
 		}
+		$direction = (int) $direction;	// For backward compatibility when $direction was set to '' instead of 0
 
 		$tag = 'td';
 		if ($notabs == 2) {
@@ -968,7 +969,7 @@ class Form
 						$out .= '<option value="'.($usecodeaskey ? ($usecodeaskey == 'code2' ? $row['code_iso'] : $row['code_iso3']) : $row['rowid']).'" data-html="'.dol_escape_htmltag($labeltoshow).'" data-eec="'.((int) $row['eec']).'">';
 					}
 					$out .= $labeltoshow;
-					$out .= '</option>';
+					$out .= '</option>'."\n";
 				}
 			}
 			$out .= '</select>';
@@ -1251,6 +1252,9 @@ class Form
 			if (is_null($ajaxoptions)) {
 				$ajaxoptions = array();
 			}
+
+			require_once DOL_DOCUMENT_ROOT . '/core/lib/ajax.lib.php';
+
 			// No immediate load of all database
 			$placeholder = '';
 			if ($selected && empty($selected_input_value)) {
@@ -1263,16 +1267,17 @@ class Form
 			// mode 1
 			$urloption = 'htmlname='.urlencode($htmlname).'&outjson=1&filter='.urlencode($filter).(empty($excludeids) ? '' : '&excludeids='.join(',', $excludeids)).($showtype ? '&showtype='.urlencode($showtype) : '');
 			$out .= ajax_autocompleter($selected, $htmlname, DOL_URL_ROOT.'/societe/ajax/company.php', $urloption, $conf->global->COMPANY_USE_SEARCH_TO_SELECT, 0, $ajaxoptions);
-			$out .= '<style type="text/css">.ui-autocomplete { z-index: 250; }</style>';
+
+			$out .= '<style type="text/css">.ui-autocomplete { z-index: 1003; }</style>';
 			if (empty($hidelabel)) {
 				print $langs->trans("RefOrLabel").' : ';
 			} elseif ($hidelabel > 1) {
-				$placeholder = ' placeholder="'.$langs->trans("RefOrLabel").'"';
+				$placeholder = $langs->trans("RefOrLabel");
 				if ($hidelabel == 2) {
 					$out .= img_picto($langs->trans("Search"), 'search');
 				}
 			}
-			$out .= '<input type="text" class="'.$morecss.'" name="search_'.$htmlname.'" id="search_'.$htmlname.'" value="'.$selected_input_value.'"'.$placeholder.' '.(!empty($conf->global->THIRDPARTY_SEARCH_AUTOFOCUS) ? 'autofocus' : '').' />';
+			$out .= '<input type="text" class="'.$morecss.'" name="search_'.$htmlname.'" id="search_'.$htmlname.'" value="'.$selected_input_value.'"'.($placeholder ? ' placeholder="'.dol_escape_htmltag($placeholder).'"' : '').' '.(!empty($conf->global->THIRDPARTY_SEARCH_AUTOFOCUS) ? 'autofocus' : '').' />';
 			if ($hidelabel == 3) {
 				$out .= img_picto($langs->trans("Search"), 'search');
 			}
@@ -1342,13 +1347,13 @@ class Form
 		}
 		$sql .= " WHERE s.entity IN (".getEntity('societe').")";
 		if (!empty($user->socid)) {
-			$sql .= " AND s.rowid = ".$user->socid;
+			$sql .= " AND s.rowid = ".((int) $user->socid);
 		}
 		if ($filter) {
 			$sql .= " AND (".$filter.")";
 		}
 		if (!$user->rights->societe->client->voir && !$user->socid) {
-			$sql .= " AND s.rowid = sc.fk_soc AND sc.fk_user = ".$user->id;
+			$sql .= " AND s.rowid = sc.fk_soc AND sc.fk_user = ".((int) $user->id);
 		}
 		if (!empty($conf->global->COMPANY_HIDE_INACTIVE_IN_COMBOBOX)) {
 			$sql .= " AND s.status <> 0";
@@ -1658,7 +1663,7 @@ class Form
 		}
 		$sql .= " WHERE sp.entity IN (".getEntity('socpeople').")";
 		if ($socid > 0 || $socid == -1) {
-			$sql .= " AND sp.fk_soc=".$socid;
+			$sql .= " AND sp.fk_soc = ".((int) $socid);
 		}
 		if (!empty($conf->global->CONTACT_HIDE_INACTIVE_IN_COMBOBOX)) {
 			$sql .= " AND sp.statut <> 0";
@@ -1947,15 +1952,12 @@ class Form
 		}
 
 		dol_syslog(get_class($this)."::select_dolusers", LOG_DEBUG);
+
 		$resql = $this->db->query($sql);
 		if ($resql) {
 			$num = $this->db->num_rows($resql);
 			$i = 0;
 			if ($num) {
-				// Enhance with select2
-				include_once DOL_DOCUMENT_ROOT.'/core/lib/ajax.lib.php';
-				$out .= ajax_combobox($htmlname);
-
 				// do not use maxwidthonsmartphone by default. Set it by caller so auto size to 100% will work when not defined
 				$out .= '<select class="flat'.($morecss ? ' '.$morecss : ' minwidth200').'" id="'.$htmlname.'" name="'.$htmlname.($multiple ? '[]' : '').'" '.($multiple ? 'multiple' : '').' '.($disabled ? ' disabled' : '').'>';
 				if ($show_empty && !$multiple) {
@@ -2063,6 +2065,12 @@ class Form
 				$out .= '<option value="">'.$langs->trans("None").'</option>';
 			}
 			$out .= '</select>';
+
+			if ($num) {
+				// Enhance with select2
+				include_once DOL_DOCUMENT_ROOT.'/core/lib/ajax.lib.php';
+				$out .= ajax_combobox($htmlname);
+			}
 		} else {
 			dol_print_error($this->db);
 		}
@@ -2437,13 +2445,13 @@ class Form
 		if (!empty($conf->global->PRODUIT_CUSTOMER_PRICES_BY_QTY) || !empty($conf->global->PRODUIT_CUSTOMER_PRICES_BY_QTY_MULTIPRICES)) {
 			$sql .= ", (SELECT pp.rowid FROM ".MAIN_DB_PREFIX."product_price as pp WHERE pp.fk_product = p.rowid";
 			if ($price_level >= 1 && !empty($conf->global->PRODUIT_CUSTOMER_PRICES_BY_QTY_MULTIPRICES)) {
-				$sql .= " AND price_level=".$price_level;
+				$sql .= " AND price_level = ".((int) $price_level);
 			}
 			$sql .= " ORDER BY date_price";
 			$sql .= " DESC LIMIT 1) as price_rowid";
 			$sql .= ", (SELECT pp.price_by_qty FROM ".MAIN_DB_PREFIX."product_price as pp WHERE pp.fk_product = p.rowid"; // price_by_qty is 1 if some prices by qty exists in subtable
 			if ($price_level >= 1 && !empty($conf->global->PRODUIT_CUSTOMER_PRICES_BY_QTY_MULTIPRICES)) {
-				$sql .= " AND price_level=".$price_level;
+				$sql .= " AND price_level = ".((int) $price_level);
 			}
 			$sql .= " ORDER BY date_price";
 			$sql .= " DESC LIMIT 1) as price_by_qty";
@@ -2463,7 +2471,7 @@ class Form
 
 		//Price by customer
 		if (!empty($conf->global->PRODUIT_CUSTOMER_PRICES) && !empty($socid)) {
-			$sql .= " LEFT JOIN  ".MAIN_DB_PREFIX."product_customer_price as pcp ON pcp.fk_soc=".$socid." AND pcp.fk_product=p.rowid";
+			$sql .= " LEFT JOIN  ".MAIN_DB_PREFIX."product_customer_price as pcp ON pcp.fk_soc=".((int) $socid)." AND pcp.fk_product=p.rowid";
 		}
 		// Units
 		if (!empty($conf->global->PRODUCT_USE_UNITS)) {
@@ -3453,7 +3461,7 @@ class Form
 		$sql .= " WHERE pfp.entity IN (".getEntity('productsupplierprice').")";
 		$sql .= " AND p.tobuy = 1";
 		$sql .= " AND s.fournisseur = 1";
-		$sql .= " AND p.rowid = ".$productid;
+		$sql .= " AND p.rowid = ".((int) $productid);
 		$sql .= " ORDER BY s.nom, pfp.ref_fourn DESC";
 
 		dol_syslog(get_class($this)."::select_product_fourn_price", LOG_DEBUG);
@@ -4716,7 +4724,7 @@ class Form
 			$more .= '<div class="tagtable paddingtopbottomonly centpercent noborderspacing">'."\n";
 			foreach ($formquestion as $key => $input) {
 				if (is_array($input) && !empty($input)) {
-					$size = (!empty($input['size']) ? ' size="'.$input['size'].'"' : '');
+					$size = (!empty($input['size']) ? ' size="'.$input['size'].'"' : '');	// deprecated. Use morecss instead.
 					$moreattr = (!empty($input['moreattr']) ? ' '.$input['moreattr'] : '');
 					$morecss = (!empty($input['morecss']) ? ' '.$input['morecss'] : '');
 
@@ -6657,11 +6665,8 @@ class Form
 			$urloption = 'htmlname='.$htmlname.'&outjson=1&objectdesc='.$objectdesc.'&filter='.urlencode($objecttmp->filter);
 			// Activate the auto complete using ajax call.
 			$out .= ajax_autocompleter($preselectedvalue, $htmlname, $urlforajaxcall, $urloption, $conf->global->$confkeyforautocompletemode, 0, array());
-			$out .= '<style type="text/css">.ui-autocomplete { z-index: 250; }</style>';
-			if ($placeholder) {
-				$placeholder = ' placeholder="'.$placeholder.'"';
-			}
-			$out .= '<input type="text" class="'.$morecss.'"'.($disabled ? ' disabled="disabled"' : '').' name="search_'.$htmlname.'" id="search_'.$htmlname.'" value="'.$selected_input_value.'"'.$placeholder.' />';
+			$out .= '<style type="text/css">.ui-autocomplete { z-index: 1003; }</style>';
+			$out .= '<input type="text" class="'.$morecss.'"'.($disabled ? ' disabled="disabled"' : '').' name="search_'.$htmlname.'" id="search_'.$htmlname.'" value="'.$selected_input_value.'"'.($placeholder ? ' placeholder="'.dol_escape_htmltag($placeholder).'"' : '') .' />';
 		} else {
 			// Immediate load of table record. Note: filter is inside $objecttmp->filter
 			$out .= $this->selectForFormsList($objecttmp, $htmlname, $preselectedvalue, $showempty, $searchkey, $placeholder, $morecss, $moreparams, $forcecombo, 0, $disabled);
@@ -6789,9 +6794,9 @@ class Form
 			}
 			if ($objecttmp->ismultientitymanaged == 1 && !empty($user->socid)) {
 				if ($objecttmp->element == 'societe') {
-					$sql .= " AND t.rowid = ".$user->socid;
+					$sql .= " AND t.rowid = ".((int) $user->socid);
 				} else {
-					$sql .= " AND t.fk_soc = ".$user->socid;
+					$sql .= " AND t.fk_soc = ".((int) $user->socid);
 				}
 			}
 			if ($searchkey != '') {
@@ -6799,7 +6804,7 @@ class Form
 			}
 			if ($objecttmp->ismultientitymanaged == 'fk_soc@societe') {
 				if (!$user->rights->societe->client->voir && !$user->socid) {
-					$sql .= " AND t.rowid = sc.fk_soc AND sc.fk_user = ".$user->id;
+					$sql .= " AND t.rowid = sc.fk_soc AND sc.fk_user = ".((int) $user->id);
 				}
 			}
 			if ($objecttmp->filter) {	 // Syntax example "(t.ref:like:'SO-%') and (t.date_creation:<:'20160101')"
@@ -7063,7 +7068,7 @@ class Form
 	public static function selectArrayAjax($htmlname, $url, $id = '', $moreparam = '', $moreparamtourl = '', $disabled = 0, $minimumInputLength = 1, $morecss = '', $callurlonselect = 0, $placeholder = '', $acceptdelayedhtml = 0)
 	{
 		global $conf, $langs;
-		global $delayedhtmlcontent;
+		global $delayedhtmlcontent;	// Will be used later outside of this function
 
 		// TODO Use an internal dolibarr component instead of select2
 		if (empty($conf->global->MAIN_USE_JQUERY_MULTISELECT) && !defined('REQUIRE_JQUERY_MULTISELECT')) {
@@ -7072,68 +7077,71 @@ class Form
 
 		$out = '<select type="text" class="'.$htmlname.($morecss ? ' '.$morecss : '').'" '.($moreparam ? $moreparam.' ' : '').'name="'.$htmlname.'"></select>';
 
-		$tmpplugin = 'select2';
-		$outdelayed = "\n".'<!-- JS CODE TO ENABLE '.$tmpplugin.' for id '.$htmlname.' -->
-	    	<script>
-	    	$(document).ready(function () {
+		$outdelayed = '';
+		if (!empty($conf->use_javascript_ajax)) {
+			$tmpplugin = 'select2';
+			$outdelayed = "\n".'<!-- JS CODE TO ENABLE '.$tmpplugin.' for id '.$htmlname.' -->
+		    	<script>
+		    	$(document).ready(function () {
 
-    	        '.($callurlonselect ? 'var saveRemoteData = [];' : '').'
+	    	        '.($callurlonselect ? 'var saveRemoteData = [];' : '').'
 
-                $(".'.$htmlname.'").select2({
-			    	ajax: {
-				    	dir: "ltr",
-				    	url: "'.$url.'",
-				    	dataType: \'json\',
-				    	delay: 250,
-				    	data: function (params) {
-				    		return {
-						    	q: params.term, 	// search term
-				    			page: params.page
-				    		};
-			    		},
-			    		processResults: function (data) {
-			    			// parse the results into the format expected by Select2.
-			    			// since we are using custom formatting functions we do not need to alter the remote JSON data
-			    			//console.log(data);
-							saveRemoteData = data;
-				    	    /* format json result for select2 */
-				    	    result = []
-				    	    $.each( data, function( key, value ) {
-				    	       result.push({id: key, text: value.text});
-                            });
-			    			//return {results:[{id:\'none\', text:\'aa\'}, {id:\'rrr\', text:\'Red\'},{id:\'bbb\', text:\'Search a into projects\'}], more:false}
-			    			//console.log(result);
-			    			return {results: result, more: false}
-			    		},
-			    		cache: true
-			    	},
-	 				language: select2arrayoflanguage,
-					containerCssClass: \':all:\',					/* Line to add class of origin SELECT propagated to the new <span class="select2-selection...> tag */
-				    placeholder: "'.dol_escape_js($placeholder).'",
-			    	escapeMarkup: function (markup) { return markup; }, 	// let our custom formatter work
-			    	minimumInputLength: '.$minimumInputLength.',
-			        formatResult: function(result, container, query, escapeMarkup) {
-                        return escapeMarkup(result.text);
-                    },
-			    });
+	                $(".'.$htmlname.'").select2({
+				    	ajax: {
+					    	dir: "ltr",
+					    	url: "'.$url.'",
+					    	dataType: \'json\',
+					    	delay: 250,
+					    	data: function (params) {
+					    		return {
+							    	q: params.term, 	// search term
+					    			page: params.page
+					    		};
+				    		},
+				    		processResults: function (data) {
+				    			// parse the results into the format expected by Select2.
+				    			// since we are using custom formatting functions we do not need to alter the remote JSON data
+				    			//console.log(data);
+								saveRemoteData = data;
+					    	    /* format json result for select2 */
+					    	    result = []
+					    	    $.each( data, function( key, value ) {
+					    	       result.push({id: key, text: value.text});
+	                            });
+				    			//return {results:[{id:\'none\', text:\'aa\'}, {id:\'rrr\', text:\'Red\'},{id:\'bbb\', text:\'Search a into projects\'}], more:false}
+				    			//console.log(result);
+				    			return {results: result, more: false}
+				    		},
+				    		cache: true
+				    	},
+		 				language: select2arrayoflanguage,
+						containerCssClass: \':all:\',					/* Line to add class of origin SELECT propagated to the new <span class="select2-selection...> tag */
+					    placeholder: "'.dol_escape_js($placeholder).'",
+				    	escapeMarkup: function (markup) { return markup; }, 	// let our custom formatter work
+				    	minimumInputLength: '.$minimumInputLength.',
+				        formatResult: function(result, container, query, escapeMarkup) {
+	                        return escapeMarkup(result.text);
+	                    },
+				    });
 
-                '.($callurlonselect ? '
-                /* Code to execute a GET when we select a value */
-                $(".'.$htmlname.'").change(function() {
-			    	var selected = $(".'.$htmlname.'").val();
-                	console.log("We select in selectArrayAjax the entry "+selected)
-			        $(".'.$htmlname.'").val("");  /* reset visible combo value */
-    			    $.each( saveRemoteData, function( key, value ) {
-    				        if (key == selected)
-    			            {
-    			                 console.log("selectArrayAjax - Do a redirect to "+value.url)
-    			                 location.assign(value.url);
-    			            }
-                    });
-    			});' : '').'
+	                '.($callurlonselect ? '
+	                /* Code to execute a GET when we select a value */
+	                $(".'.$htmlname.'").change(function() {
+				    	var selected = $(".'.$htmlname.'").val();
+	                	console.log("We select in selectArrayAjax the entry "+selected)
+				        $(".'.$htmlname.'").val("");  /* reset visible combo value */
+	    			    $.each( saveRemoteData, function( key, value ) {
+	    				        if (key == selected)
+	    			            {
+	    			                 console.log("selectArrayAjax - Do a redirect to "+value.url)
+	    			                 location.assign(value.url);
+	    			            }
+	                    });
+	    			});' : '').'
 
-    	   });
-	       </script>';
+	    	   });
+		       </script>';
+		}
 
 		if ($acceptdelayedhtml) {
 			$delayedhtmlcontent .= $outdelayed;
@@ -7164,7 +7172,7 @@ class Form
 	public static function selectArrayFilter($htmlname, $array, $id = '', $moreparam = '', $disableFiltering = 0, $disabled = 0, $minimumInputLength = 1, $morecss = '', $callurlonselect = 0, $placeholder = '', $acceptdelayedhtml = 0)
 	{
 		global $conf, $langs;
-		global $delayedhtmlcontent;
+		global $delayedhtmlcontent;	// Will be used later outside of this function
 
 		// TODO Use an internal dolibarr component instead of select2
 		if (empty($conf->global->MAIN_USE_JQUERY_MULTISELECT) && !defined('REQUIRE_JQUERY_MULTISELECT')) {
@@ -7183,74 +7191,77 @@ class Form
 			$formattedarrayresult[] = $o;
 		}
 
-		$tmpplugin = 'select2';
-		$outdelayed = "\n".'<!-- JS CODE TO ENABLE '.$tmpplugin.' for id '.$htmlname.' -->
-			<script>
-			$(document).ready(function () {
-				var data = '.json_encode($formattedarrayresult).';
+		$outdelayed = '';
+		if (!empty($conf->use_javascript_ajax)) {
+			$tmpplugin = 'select2';
+			$outdelayed = "\n".'<!-- JS CODE TO ENABLE '.$tmpplugin.' for id '.$htmlname.' -->
+				<script>
+				$(document).ready(function () {
+					var data = '.json_encode($formattedarrayresult).';
 
-				'.($callurlonselect ? 'var saveRemoteData = '.json_encode($array).';' : '').'
+					'.($callurlonselect ? 'var saveRemoteData = '.json_encode($array).';' : '').'
 
-				$(".'.$htmlname.'").select2({
-					data: data,
-					language: select2arrayoflanguage,
-					containerCssClass: \':all:\',					/* Line to add class of origin SELECT propagated to the new <span class="select2-selection...> tag */
-					placeholder: "'.dol_escape_js($placeholder).'",
-					escapeMarkup: function (markup) { return markup; }, 	// let our custom formatter work
-					minimumInputLength: '.$minimumInputLength.',
-					formatResult: function(result, container, query, escapeMarkup) {
-						return escapeMarkup(result.text);
-					},
-					matcher: function (params, data) {
+					$(".'.$htmlname.'").select2({
+						data: data,
+						language: select2arrayoflanguage,
+						containerCssClass: \':all:\',					/* Line to add class of origin SELECT propagated to the new <span class="select2-selection...> tag */
+						placeholder: "'.dol_escape_js($placeholder).'",
+						escapeMarkup: function (markup) { return markup; }, 	// let our custom formatter work
+						minimumInputLength: '.$minimumInputLength.',
+						formatResult: function(result, container, query, escapeMarkup) {
+							return escapeMarkup(result.text);
+						},
+						matcher: function (params, data) {
 
-						if(! data.id) return null;';
+							if(! data.id) return null;';
 
-		if ($callurlonselect) {
+			if ($callurlonselect) {
+				$outdelayed .= '
+
+							var urlBase = data.url;
+							var separ = urlBase.indexOf("?") >= 0 ? "&" : "?";
+							/* console.log("params.term="+params.term); */
+							/* console.log("params.term encoded="+encodeURIComponent(params.term)); */
+							saveRemoteData[data.id].url = urlBase + separ + "sall=" + encodeURIComponent(params.term.replace(/\"/g, ""));';
+			}
+
+			if (!$disableFiltering) {
+				$outdelayed .= '
+
+							if(data.text.match(new RegExp(params.term))) {
+								return data;
+							}
+
+							return null;';
+			} else {
+				$outdelayed .= '
+
+							return data;';
+			}
+
 			$outdelayed .= '
-
-						var urlBase = data.url;
-						var separ = urlBase.indexOf("?") >= 0 ? "&" : "?";
-						/* console.log("params.term="+params.term); */
-						/* console.log("params.term encoded="+encodeURIComponent(params.term)); */
-						saveRemoteData[data.id].url = urlBase + separ + "sall=" + encodeURIComponent(params.term.replace(/\"/g, ""));';
-		}
-
-		if (!$disableFiltering) {
-			$outdelayed .= '
-
-						if(data.text.match(new RegExp(params.term))) {
-							return data;
-						}
-
-						return null;';
-		} else {
-			$outdelayed .= '
-
-						return data;';
-		}
-
-		$outdelayed .= '
-					}
-				});
-
-				'.($callurlonselect ? '
-				/* Code to execute a GET when we select a value */
-				$(".'.$htmlname.'").change(function() {
-					var selected = $(".'.$htmlname.'").val();
-					console.log("We select "+selected)
-
-					$(".'.$htmlname.'").val("");  /* reset visible combo value */
-					$.each( saveRemoteData, function( key, value ) {
-						if (key == selected)
-						{
-							console.log("selectArrayFilter - Do a redirect to "+value.url)
-							location.assign(value.url);
 						}
 					});
-				});' : '').'
 
-			});
-			</script>';
+					'.($callurlonselect ? '
+					/* Code to execute a GET when we select a value */
+					$(".'.$htmlname.'").change(function() {
+						var selected = $(".'.$htmlname.'").val();
+						console.log("We select "+selected)
+
+						$(".'.$htmlname.'").val("");  /* reset visible combo value */
+						$.each( saveRemoteData, function( key, value ) {
+							if (key == selected)
+							{
+								console.log("selectArrayFilter - Do a redirect to "+value.url)
+								location.assign(value.url);
+							}
+						});
+					});' : '').'
+
+				});
+				</script>';
+		}
 
 		if ($acceptdelayedhtml) {
 			$delayedhtmlcontent .= $outdelayed;
@@ -7293,7 +7304,7 @@ class Form
 		}
 
 		// Add code for jquery to use multiselect
-		if (!empty($conf->global->MAIN_USE_JQUERY_MULTISELECT) || defined('REQUIRE_JQUERY_MULTISELECT')) {
+		if (!empty($conf->use_javascript_ajax) && !empty($conf->global->MAIN_USE_JQUERY_MULTISELECT) || defined('REQUIRE_JQUERY_MULTISELECT')) {
 			$out .= "\n".'<!-- JS CODE TO ENABLE select for id '.$htmlname.', addjscombo='.$addjscombo.' -->';
 			$out .= "\n".'<script>'."\n";
 			if ($addjscombo == 1) {
@@ -7632,6 +7643,10 @@ class Form
 					$tplpath = 'expensereport';
 				} elseif ($objecttype == 'subscription') {
 					$tplpath = 'adherents';
+				} elseif ($objecttype == 'conferenceorbooth') {
+					$tplpath = 'eventorganization';
+				} elseif ($objecttype == 'conferenceorboothattendee') {
+					$tplpath = 'eventorganization';
 				}
 
 				global $linkedObjectBlock;
@@ -8799,7 +8814,7 @@ class Form
 		$sql .= " AND f.fk_projet = p.rowid AND f.fk_statut=0"; //Brouillons seulement
 		//if ($projectsListId) $sql.= " AND p.rowid IN (".$this->db->sanitize($projectsListId).")";
 		//if ($socid == 0) $sql.= " AND (p.fk_soc=0 OR p.fk_soc IS NULL)";
-		//if ($socid > 0)  $sql.= " AND (p.fk_soc=".$socid." OR p.fk_soc IS NULL)";
+		//if ($socid > 0)  $sql.= " AND (p.fk_soc=".((int) $socid)." OR p.fk_soc IS NULL)";
 		$sql .= " ORDER BY p.ref, f.ref ASC";
 
 		$resql = $this->db->query($sql);

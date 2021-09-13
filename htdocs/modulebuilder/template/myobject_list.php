@@ -165,7 +165,7 @@ foreach ($object->fields as $key => $val) {
 			'checked'=>(($visible < 0) ? 0 : 1),
 			'enabled'=>($visible != 3 && dol_eval($val['enabled'], 1)),
 			'position'=>$val['position'],
-			'help'=>$val['help']
+			'help'=> isset($val['help']) ? $val['help'] : ''
 		);
 	}
 }
@@ -293,7 +293,7 @@ foreach ($search as $key => $val) {
 		}
 		$mode_search = (($object->isInt($object->fields[$key]) || $object->isFloat($object->fields[$key])) ? 1 : 0);
 		if ((strpos($object->fields[$key]['type'], 'integer:') === 0) || (strpos($object->fields[$key]['type'], 'sellist:') === 0) || !empty($object->fields[$key]['arrayofkeyval'])) {
-			if ($search[$key] == '-1' || $search[$key] === '0') {
+			if ($search[$key] == '-1' || ($search[$key] === '0' && (empty($object->fields[$key]['arrayofkeyval']) || !array_key_exists('0', $object->fields[$key]['arrayofkeyval'])))) {
 				$search[$key] = '';
 			}
 			$mode_search = 2;
@@ -303,10 +303,10 @@ foreach ($search as $key => $val) {
 		}
 	} else {
 		if (preg_match('/(_dtstart|_dtend)$/', $key) && $search[$key] != '') {
-			$columnName=preg_replace('/(_dtstart|_dtend)$/', '', $key);
+			$columnName = preg_replace('/(_dtstart|_dtend)$/', '', $key);
 			if (preg_match('/^(date|timestamp|datetime)/', $object->fields[$columnName]['type'])) {
 				if (preg_match('/_dtstart$/', $key)) {
-					$sql .= " AND t." . $columnName . " >= '" . $db->idate($search[$key]) . "'";
+					$sql .= " AND t.".$columnName." >= '".$db->idate($search[$key])."'";
 				}
 				if (preg_match('/_dtend$/', $key)) {
 					$sql .= " AND t." . $columnName . " <= '" . $db->idate($search[$key]) . "'";
@@ -327,22 +327,21 @@ $reshook = $hookmanager->executeHooks('printFieldListWhere', $parameters, $objec
 $sql .= $hookmanager->resPrint;
 
 /* If a group by is required
-$sql.= " GROUP BY ";
-foreach($object->fields as $key => $val)
-{
-	$sql.='t.'.$key.', ';
+$sql .= " GROUP BY ";
+foreach($object->fields as $key => $val) {
+	$sql .= 't.'.$key.', ';
 }
 // Add fields from extrafields
-if (! empty($extrafields->attributes[$object->table_element]['label'])) {
+if (!empty($extrafields->attributes[$object->table_element]['label'])) {
 	foreach ($extrafields->attributes[$object->table_element]['label'] as $key => $val) {
 		$sql .= ($extrafields->attributes[$object->table_element]['type'][$key] != 'separate' ? "ef.".$key.', ' : '');
 	}
 }
 // Add where from hooks
-$parameters=array();
-$reshook=$hookmanager->executeHooks('printFieldListGroupBy', $parameters, $object);    // Note that $action and $object may have been modified by hook
-$sql.=$hookmanager->resPrint;
-$sql=preg_replace('/,\s*$/','', $sql);
+$parameters = array();
+$reshook = $hookmanager->executeHooks('printFieldListGroupBy', $parameters, $object);    // Note that $action and $object may have been modified by hook
+$sql .= $hookmanager->resPrint;
+$sql = preg_replace('/,\s*$/', '', $sql);
 */
 
 $sql .= $db->order($sortfield, $sortorder);

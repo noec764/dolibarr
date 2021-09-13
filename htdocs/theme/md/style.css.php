@@ -789,6 +789,9 @@ textarea.centpercent {
 .small, small {
 	font-size: 85%;
 }
+.large {
+	font-size: 125%;
+}
 
 .h1 .small, .h1 small, .h2 .small, .h2 small, .h3 .small, .h3 small, h1 .small, h1 small, h2 .small, h2 small, h3 .small, h3 small {
 	font-size: 65%;
@@ -875,11 +878,17 @@ textarea.centpercent {
 .paddingleft2 {
 	padding-<?php print $left; ?>: 2px;
 }
+.paddingleft2imp {
+	padding-<?php print $left; ?>: 2px !important;
+}
 .paddingright {
 	padding-<?php print $right; ?>: 4px;
 }
 .paddingright2 {
 	padding-<?php print $right; ?>: 2px;
+}
+.paddingright2imp {
+	padding-<?php print $right; ?>: 2px !important;
 }
 .marginleft2 {
 	margin-<?php print $left; ?>: 2px;
@@ -1418,6 +1427,7 @@ table[summary="list_of_modules"] .fa-cog {
 .width400 { width: 400px; }
 .width500 { width: 500px; }
 .maxwidth25  { max-width: 25px; }
+.maxwidth40  { max-width: 40px; }
 .maxwidth50  { max-width: 50px; }
 .maxwidth75  { max-width: 75px; }
 .maxwidth100 { max-width: 100px; }
@@ -1862,7 +1872,7 @@ div.login_block {
 
 
 div.backgroundsemitransparent {
-	background:rgba(255,255,255,0.6);
+	background:rgba(255, 255, 255, 0.7);
 	padding-left: 10px;
 	padding-right: 10px;
 }
@@ -3943,6 +3953,11 @@ tr.liste_sub_total, tr.liste_sub_total td {
 	box-shadow: 2px 2px 5px #CCC !important;
 }
 
+.boxshadow {
+	-webkit-box-shadow: 0px 0px 5px #888;
+	box-shadow: 0px 0px 5px #888;
+}
+
 div.tabBar .noborder {
 	-webkit-box-shadow: 0px 0px 0px #f4f4f4 !important;
 	box-shadow: 0px 0px 0px #f4f4f4 !important;
@@ -4469,6 +4484,9 @@ div#card-errors {
 	font-size: <?php print $fontsize; ?>px !important;
 }
 
+.ui-dialog.ui-corner-all.ui-widget.ui-widget-content.ui-front.ui-dialog-buttons.ui-draggable {
+	z-index: 1002 !important;		/* Default 101 with jquery, top menu have a z-index of 1000 */
+}
 
 /* ============================================================================== */
 /* For content of image preview                                                   */

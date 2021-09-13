@@ -753,9 +753,9 @@ function checkVal($out = '', $check = 'alphanohtml', $filter = null, $options = 
 					$out = dol_string_nohtmltag($out, 0);
 					// Remove also other dangerous string sequences
 					// '"' is dangerous because param in url can close the href= or src= and add javascript functions.
-					// '../' is dangerous because it allows dir transversals
+					// '../' or '..\' is dangerous because it allows dir transversals
 					// Note &#38, '&#0000038', '&#x26'... is a simple char like '&' alone but there is no reason to accept such way to encode input data.
-					$out = str_ireplace(array('&#38', '&#0000038', '&#x26', '&quot', '&#34', '&#0000034', '&#x22', '"', '&#47', '&#0000047', '&#x2F', '../'), '', $out);
+					$out = str_ireplace(array('&#38', '&#0000038', '&#x26', '&quot', '&#34', '&#0000034', '&#x22', '"', '&#47', '&#0000047', '&#92', '&#0000092', '&#x2F', '../', '..\\'), '', $out);
 				} while ($oldstringtoclean != $out);
 				// keep lines feed
 			}
@@ -768,30 +768,59 @@ function checkVal($out = '', $check = 'alphanohtml', $filter = null, $options = 
 					// Remove html tags
 					$out = dol_html_entity_decode($out, ENT_COMPAT | ENT_HTML5, 'UTF-8');
 					// '"' is dangerous because param in url can close the href= or src= and add javascript functions.
-					// '../' is dangerous because it allows dir transversals
+					// '../' or '..\' is dangerous because it allows dir transversals
 					// Note &#38, '&#0000038', '&#x26'... is a simple char like '&' alone but there is no reason to accept such way to encode input data.
-					$out = str_ireplace(array('&#38', '&#0000038', '&#x26', '&quot', '&#34', '&#0000034', '&#x22', '"', '&#47', '&#0000047', '&#x2F', '../'), '', $out);
+					$out = str_ireplace(array('&#38', '&#0000038', '&#x26', '&quot', '&#34', '&#0000034', '&#x22', '"', '&#47', '&#0000047', '&#92', '&#0000092', '&#x2F', '../', '..\\'), '', $out);
 				} while ($oldstringtoclean != $out);
 			}
 			break;
 		case 'restricthtml':		// Recommended for most html textarea
+		case 'restricthtmlallowunvalid':
 			do {
 				$oldstringtoclean = $out;
 
-				// We replace chars from a/A to z/Z encoded with numeric HTML entities with the real char so we won't loose the chars at the next step.
+				if (!empty($out) && !empty($conf->global->MAIN_RESTRICTHTML_ONLY_VALID_HTML) && $check != 'restricthtmlallowunvalid') {
+					try {
+						$dom = new DOMDocument;
+						// Add a trick to solve pb with text without parent tag
+						// like '<h1>Foo</h1><p>bar</p>' that ends up with '<h1>Foo<p>bar</p></h1>'
+						// like 'abc' that ends up with '<p>abc</p>'
+						$out = '<div class="tricktoremove">'.$out.'</div>';
+
+						$dom->loadHTML($out, LIBXML_ERR_NONE|LIBXML_HTML_NOIMPLIED|LIBXML_HTML_NODEFDTD|LIBXML_NONET|LIBXML_NOWARNING|LIBXML_NOXMLDECL);
+						$out = trim($dom->saveHTML());
+
+						// Remove the trick added to solve pb with text without parent tag
+						$out = preg_replace('/^<div class="tricktoremove">/', '', $out);
+						$out = preg_replace('/<\/div>$/', '', $out);
+					} catch (Exception $e) {
+						//print $e->getMessage();
+						return 'InvalidHTMLString';
+					}
+				}
+
+				// Ckeditor use the numeric entitic for apostrophe so we force it to text entity (all other special chars are
+				// encoded using text entities) so we can then exclude all numeric entities.
+				$out = preg_replace('/&#39;/i', '&apos;', $out);
+
+				// We replace chars from a/A to z/Z encoded with numeric HTML entities with the real char so we won't loose the chars at the next step (preg_replace).
 				// No need to use a loop here, this step is not to sanitize (this is done at next step, this is to try to save chars, even if they are
 				// using a non coventionnel way to be encoded, to not have them sanitized just after)
 				$out = preg_replace_callback('/&#(x?[0-9][0-9a-f]+;?)/i', 'realCharForNumericEntities', $out);
 
-				// Now we remove all remaining HTML entities staring with a number. We don't want such entities.
+				// Now we remove all remaining HTML entities starting with a number. We don't want such entities.
 				$out = preg_replace('/&#x?[0-9]+/i', '', $out);	// For example if we have j&#x61vascript with an entities without the ; to hide the 'a' of 'javascript'.
 
 				$out = dol_string_onlythesehtmltags($out, 0, 1, 1);
 
 				// We should also exclude non expected attributes
 				if (!empty($conf->global->MAIN_RESTRICTHTML_REMOVE_ALSO_BAD_ATTRIBUTES)) {
-					$out = dol_string_onlythesehtmlattributes($out);
+					// Warning, the function may add a LF so we are forced to trim to compare with old $out without having always a difference and an infinit loop.
+					$out = trim(dol_string_onlythesehtmlattributes($out));
 				}
+
+				// Restore entity &apos; into &#39; (restricthtml is for html content so we can use html entity)
+				$out = preg_replace('/&apos;/i', "&#39;", $out);
 			} while ($oldstringtoclean != $out);
 			break;
 		case 'custom':
@@ -1025,10 +1054,11 @@ function dol_size($size, $type = '')
 
 
 /**
- *	Clean a string to use it as a file name
+ *	Clean a string to use it as a file name.
+ *  Replace also '--' and ' -' strings, they are used for parameters separation.
  *
  *	@param	string	$str            String to clean
- * 	@param	string	$newstr			String to replace bad chars with
+ * 	@param	string	$newstr			String to replace bad chars with.
  *  @param	int	    $unaccent		1=Remove also accent (default), 0 do not remove them
  *	@return string          		String cleaned (a-zA-Z_)
  *
@@ -1040,12 +1070,16 @@ function dol_sanitizeFileName($str, $newstr = '_', $unaccent = 1)
 	// Char '>' '<' '|' '$' and ';' are special chars for shells.
 	// Char '/' and '\' are file delimiters.
 	// -- car can be used into filename to inject special paramaters like --use-compress-program to make command with file as parameter making remote execution of command
-	$filesystem_forbidden_chars = array('<', '>', '/', '\\', '?', '*', '|', '"', ':', '°', '$', ';', '--');
-	return dol_string_nospecial($unaccent ? dol_string_unaccent($str) : $str, $newstr, $filesystem_forbidden_chars);
+	$filesystem_forbidden_chars = array('<', '>', '/', '\\', '?', '*', '|', '"', ':', '°', '$', ';');
+	$tmp = dol_string_nospecial($unaccent ? dol_string_unaccent($str) : $str, $newstr, $filesystem_forbidden_chars);
+	$tmp = preg_replace('/\-\-+/', '_', $tmp);
+	$tmp = preg_replace('/\s+\-/', ' _', $tmp);
+	return $tmp;
 }
 
 /**
- *	Clean a string to use it as a path name
+ *	Clean a string to use it as a path name.
+ *  Replace also '--' and ' -' strings, they are used for parameters separation.
  *
  *	@param	string	$str            String to clean
  * 	@param	string	$newstr			String to replace bad chars with
@@ -1057,7 +1091,10 @@ function dol_sanitizeFileName($str, $newstr = '_', $unaccent = 1)
 function dol_sanitizePathName($str, $newstr = '_', $unaccent = 1)
 {
 	$filesystem_forbidden_chars = array('<', '>', '?', '*', '|', '"', '°');
-	return dol_string_nospecial($unaccent ? dol_string_unaccent($str) : $str, $newstr, $filesystem_forbidden_chars);
+	$tmp = dol_string_nospecial($unaccent ? dol_string_unaccent($str) : $str, $newstr, $filesystem_forbidden_chars);
+	$tmp = preg_replace('/\-\-+/', '_', $tmp);
+	$tmp = preg_replace('/\s+\-/', ' _', $tmp);
+	return $tmp;
 }
 
 /**
@@ -1153,21 +1190,26 @@ function dol_string_unaccent($str)
  *	Clean a string from all punctuation characters to use it as a ref or login.
  *  This is a more complete function than dol_sanitizeFileName.
  *
- *	@param	string	$str            	String to clean
- * 	@param	string	$newstr				String to replace forbidden chars with
- *  @param  array	$badcharstoreplace  List of forbidden characters
- * 	@return string          			Cleaned string
+ *	@param	string			$str            	String to clean
+ * 	@param	string			$newstr				String to replace forbidden chars with
+ *  @param  array|string	$badcharstoreplace  List of forbidden characters to replace
+ *  @param  array|string	$badcharstoremove   List of forbidden characters to remove
+ * 	@return string          					Cleaned string
  *
  * 	@see    		dol_sanitizeFilename(), dol_string_unaccent(), dol_string_nounprintableascii()
  */
-function dol_string_nospecial($str, $newstr = '_', $badcharstoreplace = '')
+function dol_string_nospecial($str, $newstr = '_', $badcharstoreplace = '', $badcharstoremove = '')
 {
 	$forbidden_chars_to_replace = array(" ", "'", "/", "\\", ":", "*", "?", "\"", "<", ">", "|", "[", "]", ",", ";", "=", '°'); // more complete than dol_sanitizeFileName
 	$forbidden_chars_to_remove = array();
+	//$forbidden_chars_to_remove=array("(",")");
+
 	if (is_array($badcharstoreplace)) {
 		$forbidden_chars_to_replace = $badcharstoreplace;
 	}
-	//$forbidden_chars_to_remove=array("(",")");
+	if (is_array($badcharstoremove)) {
+		$forbidden_chars_to_remove = $badcharstoremove;
+	}
 
 	return str_replace($forbidden_chars_to_replace, $newstr, str_replace($forbidden_chars_to_remove, "", $str));
 }
@@ -1241,19 +1283,18 @@ function dol_escape_json($stringtoescape)
  *  Returns text escaped for inclusion in HTML alt or title tags, or into values of HTML input fields.
  *
  *  @param      string		$stringtoescape			String to escape
- *  @param		int			$keepb					1=Keep b tags and escape them, 0=remove them
+ *  @param		int			$keepb					1=Keep b tags, 0=remove them completeley
  *  @param      int         $keepn              	1=Preserve \r\n strings (otherwise, replace them with escaped value). Set to 1 when escaping for a <textarea>.
- *  @param		string		$keepmoretags			'' or 'common' or list of tags
+ *  @param		string		$noescapetags			'' or 'common' or list of tags to not escape
  *  @param		int			$escapeonlyhtmltags		1=Escape only html tags, not the special chars like accents.
  *  @return     string     				 			Escaped string
  *  @see		dol_string_nohtmltag(), dol_string_nospecial(), dol_string_unaccent()
  */
-function dol_escape_htmltag($stringtoescape, $keepb = 0, $keepn = 0, $keepmoretags = '', $escapeonlyhtmltags = 0)
+function dol_escape_htmltag($stringtoescape, $keepb = 0, $keepn = 0, $noescapetags = '', $escapeonlyhtmltags = 0)
 {
-	if ($keepmoretags == 'common') {
-		$keepmoretags = 'html,body,a,b,em,i,u,ul,li,br,div,img,font,p,span,strong,table,tr,td,th,tbody';
+	if ($noescapetags == 'common') {
+		$noescapetags = 'html,body,a,b,em,i,u,ul,li,br,div,img,font,p,span,strong,table,tr,td,th,tbody';
 	}
-	// TODO Implement $keepmoretags
 
 	// escape quotes and backslashes, newlines, etc.
 	if ($escapeonlyhtmltags) {
@@ -1267,10 +1308,33 @@ function dol_escape_htmltag($stringtoescape, $keepb = 0, $keepn = 0, $keepmoreta
 	if (!$keepn) {
 		$tmp = strtr($tmp, array("\r"=>'\\r', "\n"=>'\\n'));
 	}
+
 	if ($escapeonlyhtmltags) {
 		return htmlspecialchars($tmp, ENT_COMPAT, 'UTF-8');
 	} else {
-		return htmlentities($tmp, ENT_COMPAT, 'UTF-8');
+		// Escape tags to keep
+		$tmparrayoftags = array();
+		if ($noescapetags) {
+			$tmparrayoftags = explode(',', $noescapetags);
+		}
+
+		if (count($tmparrayoftags)) {
+			foreach ($tmparrayoftags as $tagtoreplace) {
+				$tmp = str_ireplace('<'.$tagtoreplace.'>', '__BEGINTAGTOREPLACE'.$tagtoreplace.'__', $tmp);
+				$tmp = str_ireplace('</'.$tagtoreplace.'>', '__ENDTAGTOREPLACE'.$tagtoreplace.'__', $tmp);
+			}
+		}
+
+		$result = htmlentities($tmp, ENT_COMPAT, 'UTF-8');
+
+		if (count($tmparrayoftags)) {
+			foreach ($tmparrayoftags as $tagtoreplace) {
+				$result = str_ireplace('__BEGINTAGTOREPLACE'.$tagtoreplace.'__', '<'.$tagtoreplace.'>', $result);
+				$result = str_ireplace('__ENDTAGTOREPLACE'.$tagtoreplace.'__', '</'.$tagtoreplace.'>', $result);
+			}
+		}
+
+		return $result;
 	}
 }
 
@@ -3521,8 +3585,8 @@ function img_picto($titlealt, $picto, $moreatt = '', $pictoisfullpath = false, $
 				'github', 'jabber', 'skype', 'twitter', 'facebook', 'linkedin', 'instagram', 'snapchat', 'youtube', 'google-plus-g', 'whatsapp',
 				'chevron-left', 'chevron-right', 'chevron-down', 'chevron-top', 'commercial', 'companies',
 				'generic', 'home', 'hrm', 'members', 'products', 'invoicing',
-				'partnership', 'payment', 'pencil-ruler', 'preview', 'project', 'projectpub', 'projecttask', 'question', 'refresh', 'salary', 'shipment',
-				'state', 'supplier_invoice', 'supplier_invoicea', 'supplier_invoicer', 'supplier_invoiced',
+				'partnership', 'payment', 'pencil-ruler', 'preview', 'project', 'projectpub', 'projecttask', 'question', 'refresh', 'region',
+				'salary', 'shipment', 'state', 'supplier_invoice', 'supplier_invoicea', 'supplier_invoicer', 'supplier_invoiced',
 				'technic', 'ticket',
 				'error', 'warning',
 				'recent', 'reception', 'recruitmentcandidature', 'recruitmentjobposition', 'resource',
@@ -3571,8 +3635,8 @@ function img_picto($titlealt, $picto, $moreatt = '', $pictoisfullpath = false, $
 				'partnership'=>'handshake', 'payment'=>'money-check-alt', 'phoning'=>'phone', 'phoning_mobile'=>'mobile-alt', 'phoning_fax'=>'fax', 'previous'=>'arrow-alt-circle-left', 'printer'=>'print', 'product'=>'cube', 'service'=>'concierge-bell',
 				'recent' => 'question', 'reception'=>'dolly', 'recruitmentjobposition'=>'id-card-alt', 'recruitmentcandidature'=>'id-badge',
 				'resize'=>'crop', 'supplier_order'=>'dol-order_supplier', 'supplier_proposal'=>'file-signature',
-				'refresh'=>'redo', 'resource'=>'laptop-house',
-				'state'=>'map-marked', 'security'=>'key', 'salary'=>'wallet', 'shipment'=>'dolly', 'stock'=>'box-open', 'stats' => 'chart-bar', 'split'=>'code-branch', 'stripe'=>'stripe-s',
+				'refresh'=>'redo', 'region'=>'map-marked', 'resource'=>'laptop-house',
+				'state'=>'map-marked-alt', 'security'=>'key', 'salary'=>'wallet', 'shipment'=>'dolly', 'stock'=>'box-open', 'stats' => 'chart-bar', 'split'=>'code-branch', 'stripe'=>'stripe-s',
 				'supplier'=>'building', 'supplier_invoice'=>'file-invoice-dollar', 'technic'=>'cogs', 'ticket'=>'ticket-alt',
 				'timespent'=>'clock', 'title_setup'=>'tools', 'title_accountancy'=>'money-check-alt', 'title_bank'=>'university', 'title_hrm'=>'umbrella-beach',
 				'title_agenda'=>'calendar-alt',
@@ -3673,7 +3737,7 @@ function img_picto($titlealt, $picto, $moreatt = '', $pictoisfullpath = false, $
 				'partnership'=>'#6c6aa8', 'playdisabled'=>'#ccc', 'printer'=>'#444', 'projectpub'=>'#986c6a', 'reception'=>'#a69944', 'resize'=>'#444', 'rss'=>'#cba',
 				//'shipment'=>'#a69944',
 				'security'=>'#999', 'stats'=>'#444', 'switch_off'=>'#999', 'technic'=>'#999', 'timespent'=>'#555',
-				'uncheck'=>'#800', 'uparrow'=>'#555', 'user-cog'=>'#999', 'country'=>'#aaa', 'globe-americas'=>'#aaa', 'state'=>'#aaa',
+				'uncheck'=>'#800', 'uparrow'=>'#555', 'user-cog'=>'#999', 'country'=>'#aaa', 'globe-americas'=>'#aaa', 'region'=>'#aaa', 'state'=>'#aaa',
 				'website'=>'#304', 'workstation'=>'#a69944'
 			);
 			if (isset($arrayconvpictotocolor[$pictowithouttext])) {
@@ -3956,7 +4020,7 @@ function img_edit($titlealt = 'default', $float = 0, $other = '')
  *	@param  string	$other		Add more attributes on img
  *	@return string      		Return tag img
  */
-function img_view($titlealt = 'default', $float = 0, $other = '')
+function img_view($titlealt = 'default', $float = 0, $other = 'class="valignmiddle"')
 {
 	global $langs;
 
@@ -5470,7 +5534,7 @@ function get_localtax($vatrate, $local, $thirdparty_buyer = "", $thirdparty_sell
 	} else {
 		$sql .= " AND t.recuperableonly = '".$db->escape($vatnpr)."'";
 	}
-	dol_syslog("get_localtax", LOG_DEBUG);
+
 	$resql = $db->query($sql);
 
 	if ($resql) {
@@ -6298,7 +6362,7 @@ function dol_string_onlythesehtmltags($stringtoclean, $cleanalsosomestyles = 1, 
 	$stringtoclean = preg_replace('/&#58;|&#0+58|&#x3A/i', '', $stringtoclean); // refused string ':' encoded (no reason to have a : encoded like this) to disable 'javascript:...'
 	$stringtoclean = preg_replace('/javascript\s*:/i', '', $stringtoclean);
 
-	$temp = strip_tags($stringtoclean, $allowed_tags_string);
+	$temp = strip_tags($stringtoclean, $allowed_tags_string);	// Warning: This remove also undesired </> changing string obfuscated with </> that pass injection detection into harmfull string
 
 	if ($cleanalsosomestyles) {	// Clean for remaining html tags
 		$temp = preg_replace('/position\s*:\s*(absolute|fixed)\s*!\s*important/i', '', $temp); // Note: If hacker try to introduce css comment into string to bypass this regex, the string must also be encoded by the dol_htmlentitiesbr during output so it become harmless
@@ -6348,8 +6412,8 @@ function dol_string_onlythesehtmlattributes($stringtoclean, $allowed_attributes 
 		}
 
 		$return = $dom->saveHTML();
-
 		//$return = '<html><body>aaaa</p>bb<p>ssdd</p>'."\n<p>aaa</p>aa<p>bb</p>";
+
 		$return = preg_replace('/^<html><body>/', '', $return);
 		$return = preg_replace('/<\/body><\/html>$/', '', $return);
 		return $return;
@@ -6789,6 +6853,8 @@ function getCommonSubstitutionArray($outputlangs, $onlykey = 0, $exclude = null,
 		$substitutionarray = array_merge($substitutionarray, array(
 			'__MYCOMPANY_NAME__'    => $mysoc->name,
 			'__MYCOMPANY_EMAIL__'   => $mysoc->email,
+			'__MYCOMPANY_PHONE__'   => $mysoc->phone,
+			'__MYCOMPANY_FAX__'     => $mysoc->fax,
 			'__MYCOMPANY_PROFID1__' => $mysoc->idprof1,
 			'__MYCOMPANY_PROFID2__' => $mysoc->idprof2,
 			'__MYCOMPANY_PROFID3__' => $mysoc->idprof3,
@@ -7435,7 +7501,7 @@ function print_date_range($date_start, $date_end, $format = '', $outputlangs = '
  *    @param    int			$date_end      		End date
  *    @param    string		$format        		Output format
  *    @param	Translate	$outputlangs   		Output language
- *    @param	integer		$withparenthesis	1=Add parenthesis, 0=non parenthesis
+ *    @param	integer		$withparenthesis	1=Add parenthesis, 0=no parenthesis
  *    @return	string							String
  */
 function get_date_range($date_start, $date_end, $format = '', $outputlangs = '', $withparenthesis = 1)
@@ -8087,7 +8153,7 @@ function picto_from_langcode($codelang, $moreatt = '')
 	}
 
 	if ($codelang == 'auto') {
-		return '<span class="fa fa-globe"></span>';
+		return '<span class="fa fa-language"></span>';
 	}
 
 	$langtocountryflag = array(
@@ -8448,8 +8514,10 @@ function complete_head_from_modules($conf, $langs, $object, &$head, &$h, $type, 
 	if (!empty($hookmanager)) {
 		$parameters = array('object' => $object, 'mode' => $mode, 'head' => &$head);
 		$reshook = $hookmanager->executeHooks('completeTabsHead', $parameters);
-		if ($reshook > 0) {
+		if ($reshook > 0) {		// Hook ask to replace completely the array
 			$head = $hookmanager->resArray;
+		} else {				// Hook
+			$head = array_merge($head, $hookmanager->resArray);
 		}
 		$h = count($head);
 	}

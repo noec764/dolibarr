@@ -47,7 +47,7 @@ $massaction = GETPOST('massaction', 'alpha');
 $contextpage = GETPOST('contextpage', 'aZ') ?GETPOST('contextpage', 'aZ') : 'actioncommlist'; // To manage different context of search
 $resourceid = GETPOST("search_resourceid", "int") ?GETPOST("search_resourceid", "int") : GETPOST("resourceid", "int");
 $pid = GETPOST("search_projectid", 'int', 3) ?GETPOST("search_projectid", 'int', 3) : GETPOST("projectid", 'int', 3);
-$search_status = (GETPOST("search_status", 'alpha') != '') ?GETPOST("search_status", 'alpha') : GETPOST("status", 'alpha');
+$search_status = (GETPOST("search_status", 'aZ09') != '') ? GETPOST("search_status", 'aZ09') : GETPOST("status", 'aZ09');
 $type = GETPOST('search_type', 'alphanohtml') ?GETPOST('search_type', 'alphanohtml') : GETPOST('type', 'alphanohtml');
 $optioncss = GETPOST('optioncss', 'alpha');
 $year = GETPOST("year", 'int');
@@ -447,7 +447,7 @@ if ($pid) {
 	$sql .= " AND a.fk_project=".((int) $pid);
 }
 if (!$user->rights->societe->client->voir && !$socid) {
-	$sql .= " AND (a.fk_soc IS NULL OR sc.fk_user = ".$user->id.")";
+	$sql .= " AND (a.fk_soc IS NULL OR sc.fk_user = ".((int) $user->id).")";
 }
 if ($socid > 0) {
 	$sql .= " AND s.rowid = ".((int) $socid);

@@ -1834,7 +1834,7 @@ abstract class CommonObject
 		if (!empty($element)) {
 			$sql .= " AND entity IN (".getEntity($element).")";
 		} else {
-			$sql .= " AND entity = ".$conf->entity;
+			$sql .= " AND entity = ".((int) $conf->entity);
 		}
 
 		dol_syslog(get_class($this).'::fetchObjectFrom', LOG_DEBUG);
@@ -1983,7 +1983,7 @@ abstract class CommonObject
 	/**
 	 *      Load properties id_previous and id_next by comparing $fieldid with $this->ref
 	 *
-	 *      @param	string	$filter		Optional filter. Example: " AND (t.field1 = 'aa' OR t.field2 = 'bb')"
+	 *      @param	string	$filter		Optional filter. Example: " AND (t.field1 = 'aa' OR t.field2 = 'bb')". Do not allow user input data here.
 	 *	 	@param  string	$fieldid   	Name of field to use for the select MAX and MIN
 	 *		@param	int		$nodbprefix	Do not include DB prefix to forge table name
 	 *      @return int         		<0 if KO, >0 if OK
@@ -2032,10 +2032,10 @@ abstract class CommonObject
 		}
 		$sql .= " WHERE te.".$fieldid." < '".$this->db->escape($fieldid == 'rowid' ? $this->id : $this->ref)."'"; // ->ref must always be defined (set to id if field does not exists)
 		if ($restrictiononfksoc == 1 && !$user->rights->societe->client->voir && !$socid) {
-			$sql .= " AND sc.fk_user = ".$user->id;
+			$sql .= " AND sc.fk_user = ".((int) $user->id);
 		}
 		if ($restrictiononfksoc == 2 && !$user->rights->societe->client->voir && !$socid) {
-			$sql .= " AND (sc.fk_user = ".$user->id.' OR te.fk_soc IS NULL)';
+			$sql .= " AND (sc.fk_user = ".((int) $user->id).' OR te.fk_soc IS NULL)';
 		}
 		if (!empty($filter)) {
 			if (!preg_match('/^\s*AND/i', $filter)) {
@@ -2102,10 +2102,10 @@ abstract class CommonObject
 		}
 		$sql .= " WHERE te.".$fieldid." > '".$this->db->escape($fieldid == 'rowid' ? $this->id : $this->ref)."'"; // ->ref must always be defined (set to id if field does not exists)
 		if ($restrictiononfksoc == 1 && !$user->rights->societe->client->voir && !$socid) {
-			$sql .= " AND sc.fk_user = ".$user->id;
+			$sql .= " AND sc.fk_user = ".((int) $user->id);
 		}
 		if ($restrictiononfksoc == 2 && !$user->rights->societe->client->voir && !$socid) {
-			$sql .= " AND (sc.fk_user = ".$user->id.' OR te.fk_soc IS NULL)';
+			$sql .= " AND (sc.fk_user = ".((int) $user->id).' OR te.fk_soc IS NULL)';
 		}
 		if (!empty($filter)) {
 			if (!preg_match('/^\s*AND/i', $filter)) {
@@ -3577,7 +3577,7 @@ abstract class CommonObject
 	 *	@param		string	$origin		Linked element type
 	 *	@param		int		$origin_id	Linked element id
 	 * 	@param		User	$f_user		User that create
-	 * 	@param		int		$notrigger	1=Does not execute triggers, 0= execute triggers
+	 * 	@param		int		$notrigger	1=Does not execute triggers, 0=execute triggers
 	 *	@return		int					<=0 if KO, >0 if OK
 	 *	@see		fetchObjectLinked(), updateObjectLinked(), deleteObjectLinked()
 	 */
@@ -3611,9 +3611,9 @@ abstract class CommonObject
 		$sql .= ", fk_target";
 		$sql .= ", targettype";
 		$sql .= ") VALUES (";
-		$sql .= $origin_id;
+		$sql .= ((int) $origin_id);
 		$sql .= ", '" . $this->db->escape($origin) . "'";
-		$sql .= ", " . $this->id;
+		$sql .= ", " . ((int) $this->id);
 		$sql .= ", '" . $this->db->escape($this->element) . "'";
 		$sql .= ")";
 
@@ -3791,7 +3791,6 @@ abstract class CommonObject
 					} elseif ($objecttype == 'contact') {
 						 $module = 'societe';
 					}
-
 					// Set classfile
 					$classfile = strtolower($subelement);
 					$classname = ucfirst($subelement);
@@ -3822,6 +3821,11 @@ abstract class CommonObject
 						$classpath = 'eventorganization/class';
 						$classfile = 'conferenceorboothattendee';
 						$classname = 'ConferenceOrBoothAttendee';
+						$module = 'eventorganization';
+					} elseif ($objecttype == 'conferenceorbooth') {
+						$classpath = 'eventorganization/class';
+						$classfile = 'conferenceorbooth';
+						$classname = 'ConferenceOrBooth';
 						$module = 'eventorganization';
 					}
 
@@ -3882,14 +3886,14 @@ abstract class CommonObject
 
 		$sql = "UPDATE " . MAIN_DB_PREFIX . "element_element SET ";
 		if ($updatesource) {
-			$sql .= "fk_source = " . $sourceid;
+			$sql .= "fk_source = " . ((int) $sourceid);
 			$sql .= ", sourcetype = '" . $this->db->escape($sourcetype) . "'";
-			$sql .= " WHERE fk_target = " . $this->id;
+			$sql .= " WHERE fk_target = " . ((int) $this->id);
 			$sql .= " AND targettype = '" . $this->db->escape($this->element) . "'";
 		} elseif ($updatetarget) {
-			$sql .= "fk_target = " . $targetid;
+			$sql .= "fk_target = " . ((int) $targetid);
 			$sql .= ", targettype = '" . $this->db->escape($targettype) . "'";
-			$sql .= " WHERE fk_source = " . $this->id;
+			$sql .= " WHERE fk_source = " . ((int) $this->id);
 			$sql .= " AND sourcetype = '" . $this->db->escape($this->element) . "'";
 		}
 
@@ -3975,15 +3979,15 @@ abstract class CommonObject
 				$sql .= " rowid = " . ((int) $rowid);
 			} else {
 				if ($deletesource) {
-					$sql .= " fk_source = " . $sourceid . " AND sourcetype = '" . $this->db->escape($sourcetype) . "'";
-					$sql .= " AND fk_target = " . $this->id . " AND targettype = '" . $this->db->escape($this->element) . "'";
+					$sql .= " fk_source = " . ((int) $sourceid) . " AND sourcetype = '" . $this->db->escape($sourcetype) . "'";
+					$sql .= " AND fk_target = " . ((int) $this->id) . " AND targettype = '" . $this->db->escape($this->element) . "'";
 				} elseif ($deletetarget) {
-					$sql .= " fk_target = " . $targetid . " AND targettype = '" . $this->db->escape($targettype) . "'";
-					$sql .= " AND fk_source = " . $this->id . " AND sourcetype = '" . $this->db->escape($this->element) . "'";
+					$sql .= " fk_target = " . ((int) $targetid) . " AND targettype = '" . $this->db->escape($targettype) . "'";
+					$sql .= " AND fk_source = " . ((int) $this->id) . " AND sourcetype = '" . $this->db->escape($this->element) . "'";
 				} else {
-					$sql .= " (fk_source = " . $this->id . " AND sourcetype = '" . $this->db->escape($this->element) . "')";
+					$sql .= " (fk_source = " . ((int) $this->id) . " AND sourcetype = '" . $this->db->escape($this->element) . "')";
 					$sql .= " OR";
-					$sql .= " (fk_target = " . $this->id . " AND targettype = '" . $this->db->escape($this->element) . "')";
+					$sql .= " (fk_target = " . ((int) $this->id) . " AND targettype = '" . $this->db->escape($this->element) . "')";
 				}
 			}
 
@@ -4107,7 +4111,7 @@ abstract class CommonObject
 		$sql .= " SET ".$fieldstatus." = ".((int) $status);
 		// If status = 1 = validated, update also fk_user_valid
 		if ($status == 1 && $elementTable == 'expensereport') {
-			$sql .= ", fk_user_valid = ".$user->id;
+			$sql .= ", fk_user_valid = ".((int) $user->id);
 		}
 		$sql .= " WHERE rowid=".((int) $elementId);
 
@@ -4800,14 +4804,24 @@ abstract class CommonObject
 		$i = 0;
 
 		if (!empty($this->lines)) {
+            $num = count($this->lines);
+
 			foreach ($this->lines as $line) {
-				if (is_object($hookmanager) && (($line->product_type == 9 && !empty($line->special_code)) || !empty($line->fk_parent_line))) {
+                $reshook = null;
+
+				if (is_object($hookmanager)) {
+                    $action = '';
+
 					if (empty($line->fk_parent_line)) {
-						$parameters = array('line'=>$line, 'i'=>$i);
-						$action = '';
-						$hookmanager->executeHooks('printOriginObjectLine', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
-					}
-				} else {
+						$parameters = array('line' => $line, 'num' => $num, 'i' => $i, 'restrictlist' => $restrictlist, 'selectedLines' => $selectedLines);
+						$reshook = $hookmanager->executeHooks('printOriginObjectLine', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
+					} else {
+						$parameters = array('line' => $line, 'num' => $num, 'i' => $i, 'restrictlist' => $restrictlist, 'selectedLines' => $selectedLines, 'fk_parent_line' => $line->fk_parent_line);
+						$reshook = $hookmanager->executeHooks('printOriginObjectSubLine', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
+                    }
+				}
+
+                if (empty($reshook)) {
 					$this->printOriginLine($line, '', $restrictlist, '/core/tpl', $selectedLines);
 				}
 
@@ -5484,7 +5498,7 @@ abstract class CommonObject
 		$sql = "SELECT rowid, property, lang , value";
 		$sql .= " FROM ".MAIN_DB_PREFIX."object_lang";
 		$sql .= " WHERE type_object = '".$this->db->escape($element)."'";
-		$sql .= " AND fk_object = ".$this->id;
+		$sql .= " AND fk_object = ".((int) $this->id);
 
 		//dol_syslog(get_class($this)."::fetch_optionals get extrafields data for ".$this->table_element, LOG_DEBUG);		// Too verbose
 		$resql = $this->db->query($sql);
@@ -5761,7 +5775,7 @@ abstract class CommonObject
 
 		dol_syslog(get_class($this)."::deleteExtraFields delete", LOG_DEBUG);
 
-		$sql_del = "DELETE FROM ".MAIN_DB_PREFIX.$table_element."_extrafields WHERE fk_object = ".$this->id;
+		$sql_del = "DELETE FROM ".MAIN_DB_PREFIX.$table_element."_extrafields WHERE fk_object = ".((int) $this->id);
 
 		$resql = $this->db->query($sql_del);
 		if (!$resql) {
@@ -5961,7 +5975,7 @@ abstract class CommonObject
 
 			dol_syslog(get_class($this)."::insertExtraFields delete then insert", LOG_DEBUG);
 
-			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX.$table_element."_extrafields WHERE fk_object = ".$this->id;
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX.$table_element."_extrafields WHERE fk_object = ".((int) $this->id);
 			$this->db->query($sql_del);
 
 			$sql = "INSERT INTO ".MAIN_DB_PREFIX.$table_element."_extrafields (fk_object";
@@ -6521,11 +6535,11 @@ abstract class CommonObject
 		} elseif (in_array($type, array('int', 'integer'))) {
 			$tmp = explode(',', $size);
 			$newsize = $tmp[0];
-			$out = '<input type="text" class="flat '.$morecss.'" name="'.$keyprefix.$key.$keysuffix.'" id="'.$keyprefix.$key.$keysuffix.'" maxlength="'.$newsize.'" value="'.dol_escape_htmltag($value).'"'.($moreparam ? $moreparam : '').($autofocusoncreate ? ' autofocus' : '').'>';
+			$out = '<input type="text" class="flat '.$morecss.'" name="'.$keyprefix.$key.$keysuffix.'" id="'.$keyprefix.$key.$keysuffix.'"'.($newsize > 0 ? ' maxlength="'.$newsize.'"' : '').' value="'.dol_escape_htmltag($value).'"'.($moreparam ? $moreparam : '').($autofocusoncreate ? ' autofocus' : '').'>';
 		} elseif (in_array($type, array('real'))) {
 			$out = '<input type="text" class="flat '.$morecss.'" name="'.$keyprefix.$key.$keysuffix.'" id="'.$keyprefix.$key.$keysuffix.'" value="'.dol_escape_htmltag($value).'"'.($moreparam ? $moreparam : '').($autofocusoncreate ? ' autofocus' : '').'>';
 		} elseif (preg_match('/varchar/', $type)) {
-			$out = '<input type="text" class="flat '.$morecss.'" name="'.$keyprefix.$key.$keysuffix.'" id="'.$keyprefix.$key.$keysuffix.'" maxlength="'.$size.'" value="'.dol_escape_htmltag($value).'"'.($moreparam ? $moreparam : '').($autofocusoncreate ? ' autofocus' : '').'>';
+			$out = '<input type="text" class="flat '.$morecss.'" name="'.$keyprefix.$key.$keysuffix.'" id="'.$keyprefix.$key.$keysuffix.'"'.($size > 0 ? ' maxlength="'.$size.'"' : '').' value="'.dol_escape_htmltag($value).'"'.($moreparam ? $moreparam : '').($autofocusoncreate ? ' autofocus' : '').'>';
 		} elseif (in_array($type, array('mail', 'phone', 'url'))) {
 			$out = '<input type="text" class="flat '.$morecss.'" name="'.$keyprefix.$key.$keysuffix.'" id="'.$keyprefix.$key.$keysuffix.'" value="'.dol_escape_htmltag($value).'" '.($moreparam ? $moreparam : '').($autofocusoncreate ? ' autofocus' : '').'>';
 		} elseif (preg_match('/^text/', $type)) {
@@ -7492,6 +7506,9 @@ abstract class CommonObject
 
 						if ($display_type == 'card') {
 							$out .= '<tr '.($html_id ? 'id="'.$html_id.'" ' : '').$csstyle.' class="valuefieldcreate '.$class.$this->element.'_extras_'.$key.' trextrafields_collapse'.$extrafields_collapse_num.(!empty($this->id)?'_'.$this->id:'').'" '.$domData.' >';
+							if (!empty($conf->global->MAIN_VIEW_LINE_NUMBER) && $action == 'view') {
+								$out .= '<td></td>';
+							}
 							$out .= '<td class="wordbreak';
 						} elseif ($display_type == 'line') {
 							$out .= '<div '.($html_id ? 'id="'.$html_id.'" ' : '').$csstyle.' class="valuefieldlinecreate '.$class.$this->element.'_extras_'.$key.' trextrafields_collapse'.$extrafields_collapse_num.(!empty($this->id)?'_'.$this->id:'').'" '.$domData.' >';
@@ -8529,7 +8546,6 @@ abstract class CommonObject
 				// Retrieve all extrafield
 				// fetch optionals attributes and labels
 				$this->fetch_optionals();
-				dol_syslog("aaa=".$this->id);
 
 				return $this->id;
 			} else {
@@ -9242,7 +9258,7 @@ abstract class CommonObject
 			// Delete ecm_files extrafields
 			$sql = "DELETE FROM ".MAIN_DB_PREFIX."ecm_files_extrafields WHERE fk_object IN (";
 			$sql .= " SELECT rowid FROM ".MAIN_DB_PREFIX."ecm_files WHERE filename LIKE '".$this->db->escape($this->ref)."%'";
-			$sql .= " AND filepath = '".$this->db->escape($element)."/".$this->db->escape($this->ref)."' AND entity = ".$conf->entity; // No need of getEntity here
+			$sql .= " AND filepath = '".$this->db->escape($element)."/".$this->db->escape($this->ref)."' AND entity = ".((int) $conf->entity); // No need of getEntity here
 			$sql .= ")";
 
 			if (!$this->db->query($sql)) {
@@ -9254,7 +9270,7 @@ abstract class CommonObject
 			// Delete ecm_files
 			$sql = "DELETE FROM ".MAIN_DB_PREFIX."ecm_files";
 			$sql .= " WHERE filename LIKE '".$this->db->escape($this->ref)."%'";
-			$sql .= " AND filepath = '".$this->db->escape($element)."/".$this->db->escape($this->ref)."' AND entity = ".$conf->entity; // No need of getEntity here
+			$sql .= " AND filepath = '".$this->db->escape($element)."/".$this->db->escape($this->ref)."' AND entity = ".((int) $conf->entity); // No need of getEntity here
 
 			if (!$this->db->query($sql)) {
 				$this->error = $this->db->lasterror();
@@ -9266,7 +9282,7 @@ abstract class CommonObject
 		// Delete in database with mode 1
 		if ($mode == 1) {
 			$sql = 'DELETE FROM '.MAIN_DB_PREFIX."ecm_files_extrafields";
-			$sql .= " WHERE fk_object IN (SELECT rowid FROM ".MAIN_DB_PREFIX."ecm_files WHERE src_object_type = '".$this->db->escape($this->table_element.(empty($this->module) ? '' : '@'.$this->module))."' AND src_object_id = ".$this->id.")";
+			$sql .= " WHERE fk_object IN (SELECT rowid FROM ".MAIN_DB_PREFIX."ecm_files WHERE src_object_type = '".$this->db->escape($this->table_element.(empty($this->module) ? '' : '@'.$this->module))."' AND src_object_id = ".((int) $this->id).")";
 			$resql = $this->db->query($sql);
 			if (!$resql) {
 				$this->error = $this->db->lasterror();

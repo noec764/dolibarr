@@ -1821,8 +1821,16 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action)) {
 					$company = new Societe($db);
 					$result = $company->fetch($object->socid);
 					print $company->getNomUrl(1);
+
+					// Show link to invoices
+					$tmparray = $company->getOutstandingBills('customer');
+					if (!empty($tmparray['refs'])) {
+						print ' - '.img_picto($langs->trans("Invoices"), 'bill', 'class="paddingright"').'<a href="'.DOL_URL_ROOT.'/compta/facture/list.php?socid='.$object->socid.'">'.$langs->trans("Invoices").': '.count($tmparray['refs']);
+						// TODO Add alert if warning on at least one invoice late
+						print '</a>';
+					}
 				} else {
-					print $langs->trans("NoThirdPartyAssociatedToMember");
+					print '<span class="opacitymedium">'.$langs->trans("NoThirdPartyAssociatedToMember").'</span>';
 				}
 			}
 			print '</td></tr>';
@@ -1846,7 +1854,7 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action)) {
 		}
 		print '</td></tr>';
 
-		//VCard
+		// VCard
 		print '<tr><td>';
 		print $langs->trans("VCard").'</td><td colspan="3">';
 		print '<a href="'.DOL_URL_ROOT.'/adherents/vcard.php?id='.$object->id.'">';
@@ -2002,8 +2010,7 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action)) {
 			// Generated documents
 			$filename = dol_sanitizeFileName($object->ref);
 			//$filename =  'tmp_cards.php';
-			//$filedir = $conf->adherent->dir_output . '/' . get_exdir($object->id, 2, 0, 0, $object, 'member') . dol_sanitizeFileName($object->ref);
-			$filedir = $conf->adherent->dir_output.'/'.get_exdir(0, 0, 0, 0, $object, 'member');
+			$filedir = $conf->adherent->dir_output.'/'.get_exdir(0, 0, 0, 1, $object, 'member');
 			$urlsource = $_SERVER['PHP_SELF'].'?id='.$object->id;
 			$genallowed = $user->rights->adherent->lire;
 			$delallowed = $user->rights->adherent->creer;

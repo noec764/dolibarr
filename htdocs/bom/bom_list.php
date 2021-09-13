@@ -108,7 +108,7 @@ foreach ($object->fields as $key => $val) {
 			'checked'=>(($visible < 0) ? 0 : 1),
 			'enabled'=>($visible != 3 && dol_eval($val['enabled'], 1)),
 			'position'=>$val['position'],
-			'help'=>$val['help']
+			'help'=> isset($val['help']) ? $val['help'] : ''
 		);
 	}
 }
@@ -297,7 +297,7 @@ $sql .= $object->getFieldList('t');
 // Add fields from extrafields
 if (!empty($extrafields->attributes[$object->table_element]['label'])) {
 	foreach ($extrafields->attributes[$object->table_element]['label'] as $key => $val) {
-		$sql .= ($extrafields->attributes[$object->table_element]['type'][$key] != 'separate' ? ", ef.".$key.' as options_'.$key.', ' : '');
+		$sql .= ($extrafields->attributes[$object->table_element]['type'][$key] != 'separate' ? ", ef.".$key.' as options_'.$key.' ' : '');
 	}
 }
 // Add fields from hooks
@@ -321,11 +321,11 @@ if ($object->ismultientitymanaged == 1) {
 foreach ($search as $key => $val) {
 	if (array_key_exists($key, $object->fields)) {
 		if ($key == 'status' && $search[$key] == -1) {
-		continue;
+			continue;
 		}
 		$mode_search = (($object->isInt($object->fields[$key]) || $object->isFloat($object->fields[$key])) ? 1 : 0);
 		if ((strpos($object->fields[$key]['type'], 'integer:') === 0) || (strpos($object->fields[$key]['type'], 'sellist:') === 0) || !empty($object->fields[$key]['arrayofkeyval'])) {
-			if ($search[$key] == '-1' || $search[$key] === '0') {
+			if ($search[$key] == '-1' || ($search[$key] === '0' && (empty($object->fields[$key]['arrayofkeyval']) || !array_key_exists('0', $object->fields[$key]['arrayofkeyval'])))) {
 				$search[$key] = '';
 			}
 			$mode_search = 2;

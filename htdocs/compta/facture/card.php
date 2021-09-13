@@ -321,8 +321,8 @@ if (empty($reshook)) {
 
 			//var_dump($array_of_total_ht_per_vat_rate);exit;
 			foreach ($array_of_total_ht_per_vat_rate as $vatrate => $tmpvalue) {
-				$tmp_total_ht = $array_of_total_ht_per_vat_rate[$vatrate];
-				$tmp_total_ht_devise = $array_of_total_ht_devise_per_vat_rate[$vatrate];
+				$tmp_total_ht = price2num($array_of_total_ht_per_vat_rate[$vatrate]);
+				$tmp_total_ht_devise = price2num($array_of_total_ht_devise_per_vat_rate[$vatrate]);
 
 				if (($tmp_total_ht < 0 || $tmp_total_ht_devise < 0) && empty($conf->global->FACTURE_ENABLE_NEGATIVE_LINES)) {
 					if ($object->type == $object::TYPE_DEPOSIT) {
@@ -5274,7 +5274,8 @@ if ($action == 'create') {
 			// Reopen a standard paid invoice
 			if ((($object->type == Facture::TYPE_STANDARD || $object->type == Facture::TYPE_REPLACEMENT)
 				|| ($object->type == Facture::TYPE_CREDIT_NOTE && empty($discount->id))
-				|| ($object->type == Facture::TYPE_DEPOSIT && empty($discount->id)))
+				|| ($object->type == Facture::TYPE_DEPOSIT && empty($discount->id))
+				|| ($object->type == Facture::TYPE_SITUATION && empty($discount->id)))
 				&& ($object->statut == Facture::STATUS_CLOSED || $object->statut == Facture::STATUS_ABANDONED || ($object->statut == 1 && $object->paye == 1))   // Condition ($object->statut == 1 && $object->paye == 1) should not happened but can be found due to corrupted data
 				&& ((empty($conf->global->MAIN_USE_ADVANCED_PERMS) && $usercancreate) || $usercanreopen)) {				// A paid invoice (partially or completely)
 				if ($object->close_code != 'replaced' || (!$objectidnext)) { 				// Not replaced by another invoice or replaced but the replacement invoice has been deleted
