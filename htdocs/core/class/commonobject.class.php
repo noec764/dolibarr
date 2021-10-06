@@ -1263,7 +1263,7 @@ abstract class CommonObject
 		if ($source == 'external' || $source == 'thirdparty') {
 			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."socpeople t on ec.fk_socpeople = t.rowid";
 		}
-		$sql .= " WHERE ec.element_id =".$this->id;
+		$sql .= " WHERE ec.element_id =".((int) $this->id);
 		$sql .= " AND ec.fk_c_type_contact=tc.rowid";
 		$sql .= " AND tc.element='".$this->db->escape($this->element)."'";
 		if ($code) {
@@ -1722,6 +1722,18 @@ abstract class CommonObject
 			}
 		}
 		return 0;
+	}
+
+	// phpcs:disable PEAR.NamingConventions.ValidFunctionName.ScopeNotCamelCaps
+	/**
+	 *		Load the project with id $this->fk_project into this->project
+	 *
+	 *		@return		int			<0 if KO, >=0 if OK
+	 */
+	public function fetch_project()
+	{
+		// phpcs:enable
+		return $this->fetch_projet();
 	}
 
 	// phpcs:disable PEAR.NamingConventions.ValidFunctionName.ScopeNotCamelCaps
@@ -3514,7 +3526,7 @@ abstract class CommonObject
 
 			$this->db->free($resql);
 
-			// Now update global field total_ht, total_ttc and tva
+			// Now update global field total_ht, total_ttc, total_tva, total_localtax1, total_localtax2, multicurrency_total_*
 			$fieldht = 'total_ht';
 			$fieldtva = 'tva';
 			$fieldlocaltax1 = 'localtax1';
@@ -3557,6 +3569,7 @@ abstract class CommonObject
 
 				dol_syslog(get_class($this)."::update_price", LOG_DEBUG);
 				$resql = $this->db->query($sql);
+
 				if (!$resql) {
 					$error++;
 					$this->error = $this->db->lasterror();
@@ -5294,7 +5307,7 @@ abstract class CommonObject
 								$ecmfile->gen_or_uploaded = 'generated';
 								$ecmfile->description = ''; // indexed content
 								$ecmfile->keywords = ''; // keyword content
-								$ecmfile->src_object_type = $this->table_element;
+								$ecmfile->src_object_type = $this->table_element.(empty($this->module) ? '' : '@'.$this->module);
 								$ecmfile->src_object_id   = $this->id;
 
 								$result = $ecmfile->create($user);
@@ -7294,7 +7307,11 @@ abstract class CommonObject
 					dol_include_once($InfoFieldList[1]);
 					if ($classname && class_exists($classname)) {
 						$object = new $classname($this->db);
-						$object->fetch($value);
+						if ($object->element === 'product') {	// Special cas for product because default valut of fetch are wrong
+							$object->fetch($value, '', '', '', 0, 1, 1);
+						} else {
+							$object->fetch($value);
+						}
 						$value = $object->getNomUrl($getnomurlparam, $getnomurlparam2);
 					}
 				} else {
@@ -9128,6 +9145,11 @@ abstract class CommonObject
 	 */
 	public function setCategoriesCommon($categories, $type_categ = '', $remove_existing = true)
 	{
+		// Handle single category
+		if (!is_array($categories)) {
+			$categories = array($categories);
+		}
+
 		dol_syslog(get_class($this)."::setCategoriesCommon Oject Id:".$this->id.' type_categ:'.$type_categ.' nb tag add:'.count($categories), LOG_DEBUG);
 
 		require_once DOL_DOCUMENT_ROOT.'/categories/class/categorie.class.php';
@@ -9135,11 +9157,6 @@ abstract class CommonObject
 		if (empty($type_categ)) {
 			dol_syslog(__METHOD__.': Type '.$type_categ.'is an unknown category type. Done nothing.', LOG_ERR);
 			return -1;
-		}
-
-		// Handle single category
-		if (!is_array($categories)) {
-			$categories = array($categories);
 		}
 
 		// Get current categories
