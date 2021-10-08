@@ -708,7 +708,7 @@ class FormCompany extends Form
 				$sql .= ", s.address, s.zip, s.town";
 				$sql .= ", dictp.code as country_code";
 			}
-			$sql .= "FROM ".MAIN_DB_PREFIX."societe as s";
+			$sql .= " FROM ".MAIN_DB_PREFIX."societe as s";
 			if (!empty($conf->global->COMPANY_SHOW_ADDRESS_SELECTLIST)) {
 				$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_country as dictp ON dictp.rowid = s.fk_pays";
 			}
