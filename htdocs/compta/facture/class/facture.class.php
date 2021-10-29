@@ -508,6 +508,7 @@ class Facture extends CommonInvoice
 			$result = $_facrec->fetch($this->fac_rec);
 			$result = $_facrec->fetchObjectLinked(null, '', null, '', 'OR', 1, 'sourcetype', 0); // This load $_facrec->linkedObjectsIds
 
+
 			// Define some dates
 			$originaldatewhen = $_facrec->date_when;
 			$nextdatewhen = dol_time_plus_duree($originaldatewhen, $_facrec->frequency, $_facrec->unit_frequency);
@@ -698,6 +699,30 @@ class Facture extends CommonInvoice
 		$resql = $this->db->query($sql);
 		if ($resql) {
 			$this->id = $this->db->last_insert_id(MAIN_DB_PREFIX.'facture');
+
+			foreach (array('internal','external') as $source) {
+				$contacts = $_facrec->liste_contact(-1, $source);
+				for ($i = 0; $i < count($contacts); $i++) {
+					if($this) {
+						$type_contact = null;
+						switch ($contacts[$i]['fk_c_type_contact']) {
+							case 220:
+								$type_contact = 50;
+								break;
+							case 221:
+								$type_contact = 60;
+								break;
+							case 222:
+								$type_contact = 61;
+								break;
+							case 223:
+								$type_contact = 62;
+								break;
+						}
+						$this->add_contact($contacts[$i]['id'],$type_contact,$source);
+					}
+				}
+			}
 
 			// Update ref with new one
 			$this->ref = '(PROV'.$this->id.')';

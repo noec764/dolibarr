@@ -205,6 +205,13 @@ function invoice_rec_prepare_head($object)
 	$head[$h][2] = 'card';
 	$h++;
 
+
+	$head[$h][0] = DOL_URL_ROOT.'/compta/facture/contact-rec.php?facid='.$object->id;
+	$head[$h][1] = $langs->trans("ContactsAddresses");
+	$head[$h][2] = 'contact';
+	$h++;
+
+
 	// Show more tabs from modules
 	// Entries must be declared in modules descriptor with line
 	// $this->tabs = array('entity:+tabname:Title:@mymodule:/mymodule/mypage.php?id=__ID__');   to add new tab
