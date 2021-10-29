@@ -700,30 +700,31 @@ class Facture extends CommonInvoice
 		if ($resql) {
 			$this->id = $this->db->last_insert_id(MAIN_DB_PREFIX.'facture');
 
-			foreach (array('internal','external') as $source) {
-				$contacts = $_facrec->liste_contact(-1, $source);
-				for ($i = 0; $i < count($contacts); $i++) {
-					if($this) {
-						$type_contact = null;
-						switch ($contacts[$i]['fk_c_type_contact']) {
-							case 220:
-								$type_contact = 50;
-								break;
-							case 221:
-								$type_contact = 60;
-								break;
-							case 222:
-								$type_contact = 61;
-								break;
-							case 223:
-								$type_contact = 62;
-								break;
+			if($_facrec) {
+				foreach (array('internal', 'external') as $source) {
+					$contacts = $_facrec->liste_contact(-1, $source);
+					for ($i = 0; $i < count($contacts); $i++) {
+						if ($this) {
+							$type_contact = null;
+							switch ($contacts[$i]['fk_c_type_contact']) {
+								case 220:
+									$type_contact = 50;
+									break;
+								case 221:
+									$type_contact = 60;
+									break;
+								case 222:
+									$type_contact = 61;
+									break;
+								case 223:
+									$type_contact = 62;
+									break;
+							}
+							$this->add_contact($contacts[$i]['id'], $type_contact, $source);
 						}
-						$this->add_contact($contacts[$i]['id'],$type_contact,$source);
 					}
 				}
 			}
-
 			// Update ref with new one
 			$this->ref = '(PROV'.$this->id.')';
 			$sql = 'UPDATE '.MAIN_DB_PREFIX."facture SET ref='".$this->db->escape($this->ref)."' WHERE rowid=".((int) $this->id);
