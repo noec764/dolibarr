@@ -429,4 +429,11 @@ ALTER TABLE llx_socpeople DROP COLUMN googleplus;
 ALTER TABLE llx_socpeople DROP COLUMN youtube;
 ALTER TABLE llx_socpeople DROP COLUMN whatsapp;
 
-  
+
+-- Customer Facture Recurrent / Model
+INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) VALUES (220, 'facturerec', 'internal', 'SALESREPFOLL',  'Responsable suivi du paiement', 1);
+INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) VALUES (221, 'facturerec', 'external', 'BILLING',       'Contact client facturation', 1);
+INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) VALUES (222, 'facturerec', 'external', 'SHIPPING',      'Contact client livraison', 1);
+INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) VALUES (223, 'facturerec', 'external', 'SERVICE',       'Contact client prestation', 1);
+
+

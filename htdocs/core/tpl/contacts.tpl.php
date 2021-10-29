@@ -66,6 +66,8 @@ if ($module == 'propal') {
 	$permission = $user->rights->reception->creer;
 } elseif ($module == 'project_task') {
 	$permission = $user->rights->projet->creer;
+} elseif ($module == 'facturerec'){
+	$permission = $user->rights->facture->creer;
 } elseif (!isset($permission) && isset($user->rights->$module->creer)) {
 	$permission = $user->rights->$module->creer;
 } elseif (!isset($permission) && isset($user->rights->$module->write)) {
