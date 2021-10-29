@@ -1493,6 +1493,8 @@ abstract class CommonObject
 						$element = 'contract';
 					} elseif ($obj->element == 'action') {
 						$modulename = 'agenda';
+					} elseif ($modulename === 'facturerec') {
+						$modulename = 'facture';
 					} elseif (strpos($obj->element, 'supplier') !== false && $obj->element != 'supplier_proposal') {
 						$modulename = 'fournisseur';
 					} elseif (strpos($obj->element, 'supplier') !== false && $obj->element != 'supplier_proposal') {

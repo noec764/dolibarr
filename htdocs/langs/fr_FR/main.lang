@@ -1086,6 +1086,7 @@ ContactDefault_agenda=Evénement
 ContactDefault_commande=Commande
 ContactDefault_contrat=Contrat
 ContactDefault_facture=Facture
+ContactDefault_facturerec =Facture Recurrente
 ContactDefault_fichinter=Intervention
 ContactDefault_invoice_supplier=Facture fournisseur
 ContactDefault_order_supplier=Commande fournisseur
