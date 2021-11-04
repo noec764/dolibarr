@@ -67,13 +67,12 @@ class InterfaceContactRoles extends DolibarrTriggers
 	 */
 	public function runTrigger($action, $object, User $user, Translate $langs, Conf $conf)
 	{
-		if ($action === 'PROPAL_CREATE' || $action === 'ORDER_CREATE' || $action === 'BILL_CREATE'
+		if ($action === 'PROPAL_CREATE' || $action === 'ORDER_CREATE' || $action === 'BILL_CREATE' || $action === "BILLREC_CREATE"
 			|| $action === 'ORDER_SUPPLIER_CREATE' || $action === 'BILL_SUPPLIER_CREATE' || $action === 'PROPOSAL_SUPPLIER_CREATE'
 			|| $action === 'CONTRACT_CREATE' || $action === 'FICHINTER_CREATE' || $action === 'PROJECT_CREATE' || $action === 'TICKET_CREATE') {
 			dol_syslog("Trigger '".$this->name."' for action '$action' launched by ".__FILE__.". id=".$object->id);
 
 			$socid = (property_exists($object, 'socid') ? $object->socid : $object->fk_soc);
-
 			if (!empty($socid) && $socid > 0) {
 				require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 				$contactdefault = new Contact($this->db);
@@ -88,9 +87,8 @@ class InterfaceContactRoles extends DolibarrTriggers
 					$TContactAlreadyLinked = array();
 
 					if ($object->id > 0) {
-						$TContactAlreadyLinked = array_merge($object->liste_contact(-1, 'external'), $object->liste_contact(-1, 'internal'));
+						$TContactAlreadyLinked = array_merge($object->liste_contact($contactdefault->socid ? : -1, 'external'), $object->liste_contact($contactdefault->socid ? : -1, 'internal'));
 					}
-
 					foreach ($TContact as $i => $infos) {
 						foreach ($TContactAlreadyLinked as $contactData) {
 							if ($contactData['id'] == $infos['fk_socpeople'] && $contactData['fk_c_type_contact'] == $infos['type_contact']) {

@@ -1182,6 +1182,8 @@ class Contact extends CommonObject
 						$this->ref_commande = $obj->nb;
 					} elseif ($obj->element == 'propal') {
 						$this->ref_propal = $obj->nb;
+					} elseif ($obj->element == 'facturerec') {
+						$this->ref_propal = $obj->nb;
 					}
 				}
 			}

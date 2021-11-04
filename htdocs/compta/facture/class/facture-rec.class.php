@@ -269,6 +269,7 @@ class FactureRec extends CommonInvoice
 		if ($result > 0) {
 			// On positionne en mode brouillon la facture
 			$this->brouillon = 1;
+			$this->socid = $facsrc->socid;
 
 			$sql = "INSERT INTO ".MAIN_DB_PREFIX."facture_rec (";
 			$sql .= "titre";
@@ -300,7 +301,7 @@ class FactureRec extends CommonInvoice
 			$sql .= ", suspended";
 			$sql .= ") VALUES (";
 			$sql .= "'".$this->db->escape($this->titre ? $this->titre : $this->title)."'";
-			$sql .= ", ".((int) $facsrc->socid);
+			$sql .= ", ".((int) $this->socid);
 			$sql .= ", ".((int) $conf->entity);
 			$sql .= ", '".$this->db->idate($now)."'";
 			$sql .= ", ".(!empty($facsrc->total_ttc) ? ((float) $facsrc->total_ttc) : '0');
