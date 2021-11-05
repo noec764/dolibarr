@@ -436,4 +436,8 @@ INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) 
 INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) VALUES (222, 'facturerec', 'external', 'SHIPPING',      'Contact client livraison', 1);
 INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) VALUES (223, 'facturerec', 'external', 'SERVICE',       'Contact client prestation', 1);
 
+
+-- Facture Recurrent Add Template Email
 ALTER TABLE llx_facture_rec ADD sendmail int(11);
+ALTER TABLE llx_facture_rec ADD fk_tpl_mail int(11);
+ALTER TABLE llx_facture_rec ADD FOREIGN KEY (fk_tpl_mail_id) REFERENCES llx_c_email_templates (rowid)

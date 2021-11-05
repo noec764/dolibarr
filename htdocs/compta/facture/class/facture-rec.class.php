@@ -32,6 +32,7 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/notify.class.php';
 require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
+require_once DOL_DOCUMENT_ROOT."/core/class/CMailFile.class.php";
 
 
 /**
@@ -130,7 +131,7 @@ class FactureRec extends CommonInvoice
 	public $generate_pdf; // 1 to generate PDF on invoice generation (default)
 
 	public $sendmail;
-
+	public $fk_c_email_templates;
 	/**
 	 *
 	 * @var int 1 if status is draft
@@ -527,7 +528,7 @@ class FactureRec extends CommonInvoice
 		$sql .= ', f.fk_account';
 		$sql .= ', f.frequency, f.unit_frequency, f.date_when, f.date_last_gen, f.nb_gen_done, f.nb_gen_max, f.usenewprice, f.auto_validate';
 		$sql .= ', f.generate_pdf';
-		$sql .= ', f.sendmail';
+		$sql .= ', f.sendmail, f.fk_c_email_templates';
 		$sql .= ", f.fk_multicurrency, f.multicurrency_code, f.multicurrency_tx, f.multicurrency_total_ht, f.multicurrency_total_tva, f.multicurrency_total_ttc";
 		$sql .= ', p.code as mode_reglement_code, p.libelle as mode_reglement_libelle';
 		$sql .= ', c.code as cond_reglement_code, c.libelle as cond_reglement_libelle, c.libelle_facture as cond_reglement_libelle_doc';
@@ -594,6 +595,7 @@ class FactureRec extends CommonInvoice
 				$this->auto_validate = $obj->auto_validate;
 				$this->generate_pdf = $obj->generate_pdf;
 				$this->sendmail = $obj->sendmail;
+				$this->fk_c_email_templates = $obj->fk_c_email_templates;
 
 				// Multicurrency
 				$this->fk_multicurrency 		= $obj->fk_multicurrency;
@@ -1236,7 +1238,6 @@ class FactureRec extends CommonInvoice
 	public function createRecurringInvoices($restrictioninvoiceid = 0, $forcevalidation = 0)
 	{
 		global $conf, $langs, $db, $user, $hookmanager;
-
 		$error = 0;
 		$nb_create = 0;
 
@@ -1246,7 +1247,6 @@ class FactureRec extends CommonInvoice
 		$now = dol_now();
 		$tmparray = dol_getdate($now);
 		$today = dol_mktime(23, 59, 59, $tmparray['mon'], $tmparray['mday'], $tmparray['year']); // Today is last second of current day
-
 		dol_syslog("createRecurringInvoices restrictioninvoiceid=".$restrictioninvoiceid." forcevalidation=".$forcevalidation);
 
 		$sql = 'SELECT rowid FROM '.MAIN_DB_PREFIX.'facture_rec';
@@ -1355,6 +1355,12 @@ class FactureRec extends CommonInvoice
 					'facturerec' => $facturerec, // it's an object which PHP passes by "reference", so modifiable by hooks.
 					'this'       => $this, // it's an object which PHP passes by "reference", so modifiable by hooks.
 				);
+
+
+				if ($facturerec->sendmail === '1') {
+					$this->output .= $this->sendMailToContact($facturerec);
+				}
+
 				$reshook = $hookmanager->executeHooks('afterCreationOfRecurringInvoice', $parameters, $facture); // note: $facture can be modified by hooks (warning: $facture can be null)
 
 				$i++;
@@ -1941,6 +1947,73 @@ class FactureRec extends CommonInvoice
 			dol_print_error($this->db);
 			return -1;
 		}
+	}
+
+
+    public function setMailTemplate($fk_c_email_templates)
+    {
+		if (!$this->table_element) {
+			dol_syslog(get_class($this)."::setsetSendMail was called on objet with property table_element not defined", LOG_ERR);
+			return -1;
+		}
+
+		$sql = 'UPDATE '.MAIN_DB_PREFIX.$this->table_element;
+		$sql .= " SET  fk_c_email_templates='".$this->db->escape($fk_c_email_templates)."'";
+		$sql .= " WHERE rowid = ".((int) $this->id);
+
+		dol_syslog(get_class($this)."::setSendMail", LOG_DEBUG);
+		if ($this->db->query($sql)) {
+			$this->fk_c_email_templates = $fk_c_email_templates;
+			return 1;
+		} else {
+			dol_print_error($this->db);
+			return -1;
+		}
+    }
+
+
+	private function sendMailToContact($facturerec)
+	{
+
+		$sql = 'SELECT type_template, lang, topic, content, content_lines';
+		$sql .= ' FROM '. MAIN_DB_PREFIX.'c_email_templates';
+		$sql .= " WHERE rowid = ".((int) $facturerec->fk_c_email_templates);
+
+		$result = $this->db->query($sql);
+		if ($result) {
+			if ($this->db->num_rows($result)) {
+				$obj = $this->db->fetch_object($result);
+
+				$type_template 	= $obj->type_template;
+				$lang 			= $obj->lang;
+				$topic 			= $obj->topic;
+				$content 		= $obj->content;
+				$content_lines 	= $obj->content_lines;
+
+
+				$receivers = $facturerec->liste_contact(-1,'external');
+				$sendto = '';
+				$i = 0;
+				foreach ($receivers as $receiver) {
+					if ($receiver['email']) {
+						if ($i != 0) {
+							$sendto .= ', ';
+						}
+						$sendto .= $receiver['email'];
+						$i++;
+					}
+
+
+
+				}
+
+				exit;
+//				$mailfile = new CMailFile($topic, $sendto, $from, $content, $filepath, $mimetype, $filename, $sendtocc, $sendtobcc, $deliveryreceipt, -1, '', '', $trackid, '', $sendcontext);
+//				$result = $mailfile->sendfile();
+			}
+		}
+		return  $result;
+
 	}
 }
 

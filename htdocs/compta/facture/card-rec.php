@@ -42,6 +42,8 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formprojet.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/doleditor.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/invoice.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
+require_once DOL_DOCUMENT_ROOT."/core/class/html.formmail.class.php";
+
 
 // Load translation files required by the page
 $langs->loadLangs(array('bills', 'companies', 'compta', 'admin', 'other', 'products', 'banks'));
@@ -333,6 +335,9 @@ if (empty($reshook)) {
 	} elseif ($action == 'setsendmail' && $user->rights->facture->creer) {
 		// Set sendmail boolean
 		$object->setSendMail(GETPOSTISSET('sendmail') ? '1' : '0');
+	}  elseif ($action == 'setmailtemplate' && $user->rights->facture->creer) {
+		// Set sendmail boolean
+		$result = $object->setMailTemplate(GETPOST('fk_c_email_templates','int'));
 	} elseif ($action == 'disable' && $user->rights->facture->creer) {
 		// Set status disabled
 		$db->begin();
@@ -1565,7 +1570,35 @@ if ($action == 'create') {
 		print '<input type="submit" class="button button-edit" name="modify" value="' . $langs->trans("Modify") . '">';
 		print '</form>';
 
+		if ( $object->sendmail === '1' ){
+			$formmail = new FormMail($db);
+			$result = $formmail->fetchAllEMailTemplate('facture_send', $user, $outputlangs);
+			$errors = array();
+			if ($result < 0) {
+				setEventMessages($error, $errors, 'errors');
+			}
+			$modelmail_array = array();
+			foreach ($formmail->lines_model as $line) {
+				$modelmail_array[$line->id] = $line->label;
+			}
 
+
+			// Zone to select its email template
+			if (count($modelmail_array) > 0) {
+				print '<form method="post" action="'.$_SERVER["PHP_SELF"].'?facid='.$object->id.'">';
+
+				print '<tr class="email_line"><td>';
+				print $langs->trans('SelectMailModel').':';
+				print '</td><td colspan="2"><div style="padding: 3px 0 3px 0">';
+
+
+				print $formmail->selectarray('fk_c_email_templates', $modelmail_array, $object->fk_c_email_templates, 1);
+				print '<input type ="hidden" name="action" value="setmailtemplate">';
+				print '<input type="submit" class="button" value="'.$langs->trans('Apply').'" name="modelselected" id="modelselected">';
+				print '</div></td>';
+				print '</form>';
+			}
+		}
 
 		// Auto generate documents
 		if (!empty($conf->global->INVOICE_REC_CAN_DISABLE_DOCUMENT_FILE_GENERATION)) {
@@ -1592,13 +1625,11 @@ if ($action == 'create') {
 
 		// Frequencry/Recurring section
 		if ($object->frequency > 0) {
-			print '<br>';
 
 			if (empty($conf->cron->enabled)) {
 				print info_admin($langs->trans("EnableAndSetupModuleCron", $langs->transnoentitiesnoconv("Module2300Name")));
 			}
 
-			print '<div class="underbanner clearboth"></div>';
 			print '<table class="border centpercent tableforfield">';
 
 			// Nb of generation already done
