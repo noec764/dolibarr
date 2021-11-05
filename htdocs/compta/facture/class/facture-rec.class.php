@@ -129,7 +129,10 @@ class FactureRec extends CommonInvoice
 	public $auto_validate; // 0 to create in draft, 1 to create and validate the new invoice
 	public $generate_pdf; // 1 to generate PDF on invoice generation (default)
 
+	public $sendmail;
+
 	/**
+	 *
 	 * @var int 1 if status is draft
 	 * @deprecated
 	 */
@@ -299,6 +302,7 @@ class FactureRec extends CommonInvoice
 			$sql .= ", multicurrency_code";
 			$sql .= ", multicurrency_tx";
 			$sql .= ", suspended";
+			$sql .= ", sendmail";
 			$sql .= ") VALUES (";
 			$sql .= "'".$this->db->escape($this->titre ? $this->titre : $this->title)."'";
 			$sql .= ", ".((int) $this->socid);
@@ -327,6 +331,7 @@ class FactureRec extends CommonInvoice
 			$sql .= ", '".$this->db->escape($facsrc->multicurrency_code)."'";
 			$sql .= ", ".((float) $facsrc->multicurrency_tx);
 			$sql .= ", ".((int) $this->suspended);
+			$sql .= ", ".((int) $this->sendmail);
 			$sql .= ")";
 
 			if ($this->db->query($sql)) {
@@ -522,6 +527,7 @@ class FactureRec extends CommonInvoice
 		$sql .= ', f.fk_account';
 		$sql .= ', f.frequency, f.unit_frequency, f.date_when, f.date_last_gen, f.nb_gen_done, f.nb_gen_max, f.usenewprice, f.auto_validate';
 		$sql .= ', f.generate_pdf';
+		$sql .= ', f.sendmail';
 		$sql .= ", f.fk_multicurrency, f.multicurrency_code, f.multicurrency_tx, f.multicurrency_total_ht, f.multicurrency_total_tva, f.multicurrency_total_ttc";
 		$sql .= ', p.code as mode_reglement_code, p.libelle as mode_reglement_libelle';
 		$sql .= ', c.code as cond_reglement_code, c.libelle as cond_reglement_libelle, c.libelle_facture as cond_reglement_libelle_doc';
@@ -587,6 +593,7 @@ class FactureRec extends CommonInvoice
 				$this->usenewprice			  = $obj->usenewprice;
 				$this->auto_validate = $obj->auto_validate;
 				$this->generate_pdf = $obj->generate_pdf;
+				$this->sendmail = $obj->sendmail;
 
 				// Multicurrency
 				$this->fk_multicurrency 		= $obj->fk_multicurrency;
@@ -1903,6 +1910,32 @@ class FactureRec extends CommonInvoice
 		dol_syslog(get_class($this)."::setModelPdf", LOG_DEBUG);
 		if ($this->db->query($sql)) {
 			$this->model_pdf = $model;
+			return 1;
+		} else {
+			dol_print_error($this->db);
+			return -1;
+		}
+	}
+
+
+	/**
+	 *  Update the sendmail boolean
+	 *  @return		int						<0 if KO, >0 if OK
+	 */
+	public function setSendMail($bool)
+	{
+		if (!$this->table_element) {
+			dol_syslog(get_class($this)."::setsetSendMail was called on objet with property table_element not defined", LOG_ERR);
+			return -1;
+		}
+
+		$sql = 'UPDATE '.MAIN_DB_PREFIX.$this->table_element;
+		$sql .= " SET sendmail = '".$this->db->escape($bool)."'";
+		$sql .= " WHERE rowid = ".((int) $this->id);
+
+		dol_syslog(get_class($this)."::setSendMail", LOG_DEBUG);
+		if ($this->db->query($sql)) {
+			$this->sendmail = $bool;
 			return 1;
 		} else {
 			dol_print_error($this->db);

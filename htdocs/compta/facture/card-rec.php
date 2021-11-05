@@ -213,6 +213,8 @@ if (empty($reshook)) {
 			$object->nb_gen_max = $nb_gen_max;
 			$object->auto_validate = GETPOST('auto_validate', 'int');
 			$object->generate_pdf = GETPOST('generate_pdf', 'int');
+			$object->sendmail = GETPOST('sendmail');
+
 			$object->fk_project = $projectid;
 
 			$date_next_execution = dol_mktime($rehour, $remin, 0, $remonth, $reday, $reyear);
@@ -328,6 +330,9 @@ if (empty($reshook)) {
 	} elseif ($action == 'setmodelpdf' && $user->rights->facture->creer) {
 		// Set model pdf
 		$object->setModelpdf(GETPOST('modelpdf', 'alpha'));
+	} elseif ($action == 'setsendmail' && $user->rights->facture->creer) {
+		// Set sendmail boolean
+		$object->setSendMail(GETPOSTISSET('sendmail') ? '1' : '0');
 	} elseif ($action == 'disable' && $user->rights->facture->creer) {
 		// Set status disabled
 		$db->begin();
@@ -1094,6 +1099,12 @@ if ($action == 'create') {
 		print $form->selectarray('auto_validate', $select, GETPOST('auto_validate'));
 		print "</td></tr>";
 
+		// Auto send Invoice Mail
+		print "<tr><td>".$langs->trans("SendingMailAutomatically")."</td><td>";
+		print '<input type="checkbox" name="sendmail" value="1">';
+		print "</td></tr>";
+
+
 		// Auto generate document
 		if (!empty($conf->global->INVOICE_REC_CAN_DISABLE_DOCUMENT_FILE_GENERATION)) {
 			print "<tr><td>".$langs->trans("StatusOfGeneratedDocuments")."</td><td>";
@@ -1158,7 +1169,6 @@ if ($action == 'create') {
 	 */
 	if ($object->id > 0) {
 		$object->fetch_thirdparty();
-
 		// Confirmation de la suppression d'une ligne produit
 		if ($action == 'ask_deleteline') {
 			$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id.'&lineid='.$lineid, $langs->trans('DeleteProductLine'), $langs->trans('ConfirmDeleteProductLine'), 'confirm_deleteline', '', 'no', 1);
@@ -1536,6 +1546,27 @@ if ($action == 'create') {
 			print $form->editfieldval($langs->trans("StatusOfGeneratedInvoices"), 'auto_validate', $object->auto_validate, $object, $user->rights->facture->creer, $select);
 		}
 		print '</td>';
+
+		// Status mail sending option
+		if ( $object->sendmail === '1' ){
+			$checked = 'checked';
+		} else {
+			$checked = '';
+		}
+		print '<tr><td>';
+		print $form->editfieldkey($langs->trans("SendingMailAutomatically"), 'sendmail', '', $object, 0).'</td><td>';
+		print '<form method="post" action="'.$_SERVER["PHP_SELF"].'?facid='.$object->id.'">';
+		print '<input type="hidden" name="action"  value="setsendmail">';
+		if ( $checked ) {
+			print '<input type="checkbox" name="sendmail" ' . $checked . '>';
+		} else {
+			print '<input type="checkbox" name="sendmail" ' . $checked . '>';
+		}
+		print '<input type="submit" class="button button-edit" name="modify" value="' . $langs->trans("Modify") . '">';
+		print '</form>';
+
+
+
 		// Auto generate documents
 		if (!empty($conf->global->INVOICE_REC_CAN_DISABLE_DOCUMENT_FILE_GENERATION)) {
 			print '<tr>';

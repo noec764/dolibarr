@@ -295,3 +295,4 @@ InvoiceNotLate30Days = To be collected (> 30 days)
 InvoiceToPay=To pay (< 15 days)
 InvoiceToPay15Days=To pay (15 to 30 days)
 InvoiceToPay30Days=To pay (> 30 days)
+SendingMailAutomatically=Sending of an automatic email when the invoice is generated

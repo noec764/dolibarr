@@ -436,4 +436,4 @@ INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) 
 INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) VALUES (222, 'facturerec', 'external', 'SHIPPING',      'Contact client livraison', 1);
 INSERT INTO llx_c_type_contact (rowid, element, source, code, libelle, active ) VALUES (223, 'facturerec', 'external', 'SERVICE',       'Contact client prestation', 1);
 
-
+ALTER TABLE llx_facture_rec ADD sendmail int(11);
