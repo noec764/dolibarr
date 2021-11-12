@@ -1358,7 +1358,12 @@ class FactureRec extends CommonInvoice
 
 
 				if ($facturerec->sendmail === '1') {
-					$this->output .= $this->sendMailToContact($facturerec);
+					$res = $this->sendMailToContact($facturerec,$facture, $user);
+					if ($res < 0) {
+						$error++;
+						$this->error = "Failed to send the mail to contact\n";
+						$this->errors[] = "Failed to send the mail to contact\n";
+					}
 				}
 
 				$reshook = $hookmanager->executeHooks('afterCreationOfRecurringInvoice', $parameters, $facture); // note: $facture can be modified by hooks (warning: $facture can be null)
@@ -1926,7 +1931,9 @@ class FactureRec extends CommonInvoice
 
 	/**
 	 *  Update the sendmail boolean
-	 *  @return		int						<0 if KO, >0 if OK
+	 * @param int                         <0 if KO, >0 if OK
+	 * @return int                        <0 if KO, >0 if OK
+	 * @throws Exception
 	 */
 	public function setSendMail($bool)
 	{
@@ -1949,7 +1956,12 @@ class FactureRec extends CommonInvoice
 		}
 	}
 
-
+	/**
+	 *  Update the template email for automatic mail sending
+	 *
+	 *  @param     	string		$fk_c_email_templates	rowId of template to choose
+	 *  @return		int						<0 if KO, >0 if OK
+	 */
     public function setMailTemplate($fk_c_email_templates)
     {
 		if (!$this->table_element) {
@@ -1972,23 +1984,31 @@ class FactureRec extends CommonInvoice
     }
 
 
-	private function sendMailToContact($facturerec)
+	/**
+	 *  Send mail to contact of $facturerec
+	 *
+	 *  @param     	object		$facturerec	the object of rec Facture
+	 * 	@param      object 		$facture 	the new generated facture
+	 *  @return		int						<0 if KO, >0 if OK
+	 */
+	private function sendMailToContact($facturerec, $facture)
 	{
+		global $conf, $langs;
 
-		$sql = 'SELECT type_template, lang, topic, content, content_lines';
+		$sql = 'SELECT topic, content';
 		$sql .= ' FROM '. MAIN_DB_PREFIX.'c_email_templates';
 		$sql .= " WHERE rowid = ".((int) $facturerec->fk_c_email_templates);
 
+		$path_to_pdf =  $facture->last_main_doc ?: '';
 		$result = $this->db->query($sql);
-		if ($result) {
+		if ($result && !empty( $path_to_pdf )) {
+			$path_to_pdf = DOL_DATA_ROOT .'/'. $path_to_pdf;
+
 			if ($this->db->num_rows($result)) {
 				$obj = $this->db->fetch_object($result);
 
-				$type_template 	= $obj->type_template;
-				$lang 			= $obj->lang;
 				$topic 			= $obj->topic;
 				$content 		= $obj->content;
-				$content_lines 	= $obj->content_lines;
 
 
 				$receivers = $facturerec->liste_contact(-1,'external');
@@ -2002,17 +2022,29 @@ class FactureRec extends CommonInvoice
 						$sendto .= $receiver['email'];
 						$i++;
 					}
-
-
-
 				}
 
-				exit;
-//				$mailfile = new CMailFile($topic, $sendto, $from, $content, $filepath, $mimetype, $filename, $sendtocc, $sendtobcc, $deliveryreceipt, -1, '', '', $trackid, '', $sendcontext);
-//				$result = $mailfile->sendfile();
+				if ( !empty($conf->global->MAIN_MAIL_EMAIL_FROM)) {
+					$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+					$mimetype = 'application/pdf';
+
+					$substitutionarray = getCommonSubstitutionArray($langs, 0, null, $facture->thirdparty);
+					complete_substitutions_array($substitutionarray, $langs, $facture->thirdparty);
+					$content = make_substitutions($content, $substitutionarray, $langs);
+
+					$mailfile = new CMailFile($topic, $sendto, $from, $content, array($path_to_pdf), array($mimetype), array($facture->ref .'.pdf'));
+					$result = $mailfile->sendfile();
+				}
+
 			}
 		}
-		return  $result;
+		if ($result) {
+			dol_syslog( "Mail sent to :". $sendto);
+			return 1;
+		} else {
+			dol_syslog( "An error occured in facture/class/facture-rec.class");
+			return -1;
+		}
 
 	}
 }
