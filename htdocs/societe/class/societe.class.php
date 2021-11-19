@@ -2991,11 +2991,12 @@ class Societe extends CommonObject
 	/**
 	 *    Get array of all default contacts for a thirdparty
 	 *
-	 *    @param	int         $list       0:Return array contains all properties, 1:Return array contains just id
-	 *    @param    string      $code       Filter on this code of contact type ('SHIPPING', 'BILLING', ...)
-	 *    @return	array|int		        Array of contacts, -1 if error
+	 *    @param	int         $list                       0:Return array contains all properties, 1:Return array contains just id
+	 *    @param    string      $code                       Filter on this code of contact type ('SHIPPING', 'BILLING', ...)
+     *    @param    bool        $exclude_same_thirdparty    If true, exclude contacts from the same thirdparty
+	 *    @return	array|int                               Array of contacts, -1 if error
 	 */
-	public function getDefaultContacts($list = 0, $code = '')
+	public function getDefaultContacts($list = 0, $code = '', $exclude_same_thirdparty = true)
 	{
 		global $langs;
 
@@ -3014,6 +3015,9 @@ class Societe extends CommonObject
 		}
 		$sql .= " AND tc.source = 'external'";
 		$sql .= " AND tc.active = 1";
+        if ($exclude_same_thirdparty) {
+            $sql .= " AND t.fk_soc != " . intval($this->id);
+        }
 		$sql .= " ORDER BY t.lastname ASC";
 
 		dol_syslog(__METHOD__, LOG_DEBUG);
