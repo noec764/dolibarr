@@ -510,7 +510,7 @@ class Facture extends CommonInvoice
 
 
 			// Define some dates
-			$originaldatewhen = $_facrec->date_when;
+			$originaldatewhen = $_facrec->date_when ?: dol_now();
 			$nextdatewhen = dol_time_plus_duree($originaldatewhen, $_facrec->frequency, $_facrec->unit_frequency);
 			$previousdaynextdatewhen = dol_time_plus_duree($nextdatewhen, -1, 'd');
 

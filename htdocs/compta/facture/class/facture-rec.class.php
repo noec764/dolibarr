@@ -1307,6 +1307,7 @@ class FactureRec extends CommonInvoice
 					$facture->date = (empty($facturerec->date_when) ? $now : $facturerec->date_when); // We could also use dol_now here but we prefer date_when so invoice has real date when we would like even if we generate later.
 					$facture->socid = $facturerec->socid;
 
+
 					$invoiceidgenerated = $facture->create($user);
 					if ($invoiceidgenerated <= 0) {
 						$this->errors = $facture->errors;
@@ -1358,7 +1359,7 @@ class FactureRec extends CommonInvoice
 
 
 				if ($facturerec->sendmail === '1') {
-					$res = $this->sendMailToContact($facturerec,$facture, $user);
+					$res = $this->sendMailToContact($facturerec,$facture);
 					if ($res < 0) {
 						$error++;
 						$this->error = "Failed to send the mail to contact\n";
@@ -2003,8 +2004,7 @@ class FactureRec extends CommonInvoice
 		$result = $this->db->query($sql);
 		if ($result && !empty( $path_to_pdf )) {
 			$path_to_pdf = DOL_DATA_ROOT .'/'. $path_to_pdf;
-
-			if ($this->db->num_rows($result)) {
+			if ($this->db->num_rows($result) > 0) {
 				$obj = $this->db->fetch_object($result);
 
 				$topic 			= $obj->topic;
