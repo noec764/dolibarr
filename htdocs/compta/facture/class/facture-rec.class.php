@@ -1357,9 +1357,9 @@ class FactureRec extends CommonInvoice
 					'this'       => $this, // it's an object which PHP passes by "reference", so modifiable by hooks.
 				);
 
-
-				if ($facturerec->sendmail === '1') {
-					$res = $this->sendMailToContact($facturerec,$facture);
+				$contacts = $facturerec->liste_contact(-1,'external');
+				if ($facturerec->sendmail === '1' && count($contacts) > 0) {
+					$res = $this->sendMailToContact($facturerec,$facture,$contacts);
 					if ($res < 0) {
 						$error++;
 						$this->error = "Failed to send the mail to contact\n";
@@ -1988,11 +1988,13 @@ class FactureRec extends CommonInvoice
 	/**
 	 *  Send mail to contact of $facturerec
 	 *
-	 *  @param     	object		$facturerec	the object of rec Facture
-	 * 	@param      object 		$facture 	the new generated facture
-	 *  @return		int						<0 if KO, >0 if OK
+	 * @param object $facturerec the object of rec Facture
+	 * @param object $facture the new generated facture
+	 * @param $contacts
+	 * @return        int                        <0 if KO, >0 if OK
+	 * @throws Exception
 	 */
-	private function sendMailToContact($facturerec, $facture)
+	private function sendMailToContact($facturerec, $facture,$contacts)
 	{
 		global $conf, $langs;
 
@@ -2010,16 +2012,14 @@ class FactureRec extends CommonInvoice
 				$topic 			= $obj->topic;
 				$content 		= $obj->content;
 
-
-				$receivers = $facturerec->liste_contact(-1,'external');
 				$sendto = '';
 				$i = 0;
-				foreach ($receivers as $receiver) {
-					if ($receiver['email']) {
+				foreach ($contacts as $contact) {
+					if ($contact['email']) {
 						if ($i != 0) {
 							$sendto .= ', ';
 						}
-						$sendto .= $receiver['email'];
+						$sendto .= $contact['email'];
 						$i++;
 					}
 				}
@@ -2031,6 +2031,7 @@ class FactureRec extends CommonInvoice
 					$substitutionarray = getCommonSubstitutionArray($langs, 0, null, $facture->thirdparty);
 					complete_substitutions_array($substitutionarray, $langs, $facture->thirdparty);
 					$content = make_substitutions($content, $substitutionarray, $langs);
+
 
 					$mailfile = new CMailFile($topic, $sendto, $from, $content, array($path_to_pdf), array($mimetype), array($facture->ref .'.pdf'));
 					$result = $mailfile->sendfile();
