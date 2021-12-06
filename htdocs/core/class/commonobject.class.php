@@ -7420,16 +7420,20 @@ abstract class CommonObject
 						$langs->load($extrafields->attributes[$this->table_element]['langfile'][$key]);
 					}
 
+<<<<<<< HEAD
 					$colspan = 0;
+=======
+					$colspan = 1;
+>>>>>>> FIX: separator extrafields visibility and warnings (community PR 19560 and 19561)
 					if (is_array($params) && count($params) > 0 && $display_type=='card') {
-						if (array_key_exists('cols', $params)) {
-							$colspan = $params['cols'];
+						if (array_key_exists('cols', $params) && is_numeric($params['cols'])) {
+							$colspan = intval($params['cols']);
 						} elseif (array_key_exists('colspan', $params)) {	// For backward compatibility. Use cols instead now.
 							$reg = array();
 							if (preg_match('/colspan="(\d+)"/', $params['colspan'], $reg)) {
-								$colspan = $reg[1];
-							} else {
-								$colspan = $params['colspan'];
+								$colspan = intval($reg[1]);
+							} elseif (is_numeric($params['colspan'])) {
+								$colspan = intval($params['colspan']);
 							}
 						}
 					}
@@ -7479,7 +7483,11 @@ abstract class CommonObject
 							}
 						}
 
+<<<<<<< HEAD
 						$out .= $extrafields->showSeparator($key, $this, ($colspan ? $colspan + 1 : 2), $display_type);
+=======
+						$out .= $extrafields->showSeparator($key, $this, $colspan + 1, $display_type);
+>>>>>>> FIX: separator extrafields visibility and warnings (community PR 19560 and 19561)
 					} else {
 						$class = (!empty($extrafields->attributes[$this->table_element]['hidden'][$key]) ? 'hideobject ' : '');
 						$csstyle = '';

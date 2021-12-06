@@ -873,7 +873,11 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action)) {
 			}
 
 			// Other attributes
+<<<<<<< HEAD
 			$parameters = array('socid' => $socid, 'objsoc' => $objsoc, 'colspan' => ' colspan="3"', 'cols' => 3, 'colspanvalue' => 3);
+=======
+			$parameters = array('socid' => $socid, 'objsoc' => $objsoc, 'colspan' => ' colspan="3"', 'colspanvalue' => 3);
+>>>>>>> FIX: separator extrafields visibility and warnings (community PR 19560 and 19561)
 			include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_add.tpl.php';
 
 			print "</table><br>";
@@ -1184,7 +1188,11 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action)) {
 			}
 
 			// Other attributes
+<<<<<<< HEAD
 			$parameters = array('colspan' => ' colspan="3"', 'cols'=> '3', 'colspanvalue'=> '3');
+=======
+			$parameters = array('colspan' => ' colspan="3"', 'colspanvalue'=> '3');
+>>>>>>> FIX: separator extrafields visibility and warnings (community PR 19560 and 19561)
 			include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_edit.tpl.php';
 
 			$object->load_ref_elements();
