@@ -4822,14 +4822,24 @@ abstract class CommonObject
 		$i = 0;
 
 		if (!empty($this->lines)) {
+            $num = count($this->lines);
+
 			foreach ($this->lines as $line) {
-				if (is_object($hookmanager) && (($line->product_type == 9 && !empty($line->special_code)) || !empty($line->fk_parent_line))) {
+                $reshook = null;
+
+				if (is_object($hookmanager)) {
+                    $action = '';
+
 					if (empty($line->fk_parent_line)) {
-						$parameters = array('line'=>$line, 'i'=>$i);
-						$action = '';
-						$hookmanager->executeHooks('printOriginObjectLine', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
-					}
-				} else {
+						$parameters = array('line' => $line, 'num' => $num, 'i' => $i, 'restrictlist' => $restrictlist, 'selectedLines' => $selectedLines);
+						$reshook = $hookmanager->executeHooks('printOriginObjectLine', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
+					} else {
+						$parameters = array('line' => $line, 'num' => $num, 'i' => $i, 'restrictlist' => $restrictlist, 'selectedLines' => $selectedLines, 'fk_parent_line' => $line->fk_parent_line);
+						$reshook = $hookmanager->executeHooks('printOriginObjectSubLine', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
+                    }
+				}
+
+                if (empty($reshook)) {
 					$this->printOriginLine($line, '', $restrictlist, '/core/tpl', $selectedLines);
 				}
 
@@ -6760,7 +6770,7 @@ abstract class CommonObject
 			$out .= '</select>';
 		} elseif ($type == 'checkbox') {
 			$value_arr = explode(',', $value);
-			$out = $form->multiselectarray($keyprefix.$key.$keysuffix, (empty($param['options']) ?null:$param['options']), $value_arr, '', 0, $morecss, 0, '100%');
+			$out = $form->multiselectarray($keyprefix.$key.$keysuffix, (empty($param['options']) ?null:$param['options']), $value_arr, '', 0, '', 0, '100%');
 		} elseif ($type == 'radio') {
 			$out = '';
 			foreach ($param['options'] as $keyopt => $val) {
@@ -7410,20 +7420,19 @@ abstract class CommonObject
 						$langs->load($extrafields->attributes[$this->table_element]['langfile'][$key]);
 					}
 
-					$colspan = 0;
+					$colspan = 1;
 					if (is_array($params) && count($params) > 0 && $display_type=='card') {
-						if (array_key_exists('cols', $params)) {
-							$colspan = $params['cols'];
+						if (array_key_exists('cols', $params) && is_numeric($params['cols'])) {
+							$colspan = intval($params['cols']);
 						} elseif (array_key_exists('colspan', $params)) {	// For backward compatibility. Use cols instead now.
 							$reg = array();
 							if (preg_match('/colspan="(\d+)"/', $params['colspan'], $reg)) {
-								$colspan = $reg[1];
-							} else {
-								$colspan = $params['colspan'];
+								$colspan = intval($reg[1]);
+							} elseif (is_numeric($params['colspan'])) {
+								$colspan = intval($params['colspan']);
 							}
 						}
 					}
-					$colspan = intval($colspan);
 
 					switch ($mode) {
 						case "view":
@@ -7469,7 +7478,7 @@ abstract class CommonObject
 							}
 						}
 
-						$out .= $extrafields->showSeparator($key, $this, ($colspan ? $colspan + 1 : 2), $display_type);
+						$out .= $extrafields->showSeparator($key, $this, $colspan + 1, $display_type);
 					} else {
 						$class = (!empty($extrafields->attributes[$this->table_element]['hidden'][$key]) ? 'hideobject ' : '');
 						$csstyle = '';
@@ -7504,16 +7513,14 @@ abstract class CommonObject
 							if (!is_numeric($this->array_options['options_'.$key])) {	// For backward compatibility
 								$datenotinstring = $this->db->jdate($datenotinstring);
 							}
-							$datekey = $keyprefix.'options_'.$key.$keysuffix;
-							$value = (GETPOSTISSET($datekey)) ? dol_mktime(12, 0, 0, GETPOST($datekey.'month', 'int', 3), GETPOST($datekey.'day', 'int', 3), GETPOST($datekey.'year', 'int', 3)) : $datenotinstring;
+							$value = (GETPOSTISSET($keyprefix.'options_'.$key.$keysuffix)) ? dol_mktime(12, 0, 0, GETPOST($keyprefix.'options_'.$key.$keysuffix."month", 'int', 3), GETPOST($keyprefix.'options_'.$key.$keysuffix."day", 'int', 3), GETPOST($keyprefix.'options_'.$key.$keysuffix."year", 'int', 3)) : $datenotinstring;
 						}
 						if (in_array($extrafields->attributes[$this->table_element]['type'][$key], array('datetime'))) {
 							$datenotinstring = $this->array_options['options_'.$key];
 							if (!is_numeric($this->array_options['options_'.$key])) {	// For backward compatibility
 								$datenotinstring = $this->db->jdate($datenotinstring);
 							}
-							$timekey = $keyprefix.'options_'.$key.$keysuffix;
-							$value = (GETPOSTISSET($timekey)) ? dol_mktime(GETPOST($timekey.'hour', 'int', 3), GETPOST($timekey.'min', 'int', 3), GETPOST($timekey.'sec', 'int', 3), GETPOST($timekey.'month', 'int', 3), GETPOST($timekey.'day', 'int', 3), GETPOST($timekey.'year', 'int', 3), 'tzuserrel') : $datenotinstring;
+							$value = (GETPOSTISSET($keyprefix.'options_'.$key.$keysuffix)) ? dol_mktime(GETPOST($keyprefix.'options_'.$key.$keysuffix."hour", 'int', 3), GETPOST($keyprefix.'options_'.$key.$keysuffix."min", 'int', 3), GETPOST($keyprefix.'options_'.$key.$keysuffix."sec", 'int', 3), GETPOST($keyprefix.'options_'.$key.$keysuffix."month", 'int', 3), GETPOST($keyprefix.'options_'.$key.$keysuffix."day", 'int', 3), GETPOST($keyprefix.'options_'.$key.$keysuffix."year", 'int', 3), 'tzuserrel') : $datenotinstring;
 						}
 						// Convert float submited string into real php numeric (value in memory must be a php numeric)
 						if (in_array($extrafields->attributes[$this->table_element]['type'][$key], array('price', 'double'))) {
@@ -7521,7 +7528,7 @@ abstract class CommonObject
 						}
 
 						// HTML, text, select, integer and varchar: take into account default value in database if in create mode
-						if (in_array($extrafields->attributes[$this->table_element]['type'][$key], array('html', 'text', 'varchar', 'select', 'int', 'boolean'))) {
+						if (in_array($extrafields->attributes[$this->table_element]['type'][$key], array('html', 'text', 'varchar', 'select', 'int'))) {
 							if ($action == 'create') {
 								$value = (GETPOSTISSET($keyprefix.'options_'.$key.$keysuffix) || $value) ? $value : $extrafields->attributes[$this->table_element]['default'][$key];
 							}
@@ -7572,7 +7579,7 @@ abstract class CommonObject
 						if ($display_type == 'card') {
 							$out .= '<td '.($html_id ? 'id="'.$html_id.'" ' : '').' class="'.$this->element.'_extras_'.$key.'" '.($colspan ? ' colspan="'.$colspan.'"' : '').'>';
 						} elseif ($display_type == 'line') {
-							$out .= '<div '.($html_id ? 'id="'.$html_id.'" ' : '').' style="display: inline-block" class="'.$this->element.'_extras_'.$key.' extra_inline_'.$extrafields->attributes[$this->table_element]['type'][$key].'">';
+							$out .= '<div '.($html_id ? 'id="'.$html_id.'" ' : '').' style="display: inline-block" class="'.$this->element.'_extras_'.$key.'">';
 						}
 
 						switch ($mode) {

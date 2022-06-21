@@ -873,7 +873,7 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action)) {
 			}
 
 			// Other attributes
-			$parameters = array('socid' => $socid, 'objsoc' => $objsoc, 'colspan' => ' colspan="3"', 'cols' => 3, 'colspanvalue' => 3);
+			$parameters = array('socid' => $socid, 'objsoc' => $objsoc, 'colspan' => ' colspan="3"', 'cols' => 3);
 			include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_add.tpl.php';
 
 			print "</table><br>";
@@ -1184,7 +1184,7 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action)) {
 			}
 
 			// Other attributes
-			$parameters = array('colspan' => ' colspan="3"', 'cols'=> '3', 'colspanvalue'=> '3');
+			$parameters = array('colspan' => ' colspan="3"', 'cols'=> '3');
 			include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_edit.tpl.php';
 
 			$object->load_ref_elements();
