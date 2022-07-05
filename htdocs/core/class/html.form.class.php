@@ -3387,13 +3387,34 @@ class Form
 				$opt .= $optlabel;
 				$outval .= $outvallabel;
 
-				$hookmanager->executeHooks('addContentSelectProductLine', [], $objp); // Note that $action and $object may have been modified by hook
+				$opt .= "</option>\n";
 
-				if (!empty($hookmanager->resPrint)) {
+				$outpriceHt = price2num($objp->unitprice, 'MU');
+				$outdisabled = empty($objp->idprodfournprice);
+				$outdescription = $objp->description;
+
+				$resHook = $hookmanager->executeHooks('addContentSelectProductLine', [], $objp); // Note that $action and $object may have been modified by hook
+				if ($resHook < 0) {
+					$this->error = $hookmanager->error;
+					$this->errors += $hookmanager->errors;
+					break;
+				}
+				elseif (empty($resHook)) {
 					$outval .= " - " . $hookmanager->resPrint;
 				}
-
-				$opt .= "</option>\n";
+				else {
+					$outkey = !empty($hookmanager->resArray['key']) ? $hookmanager->resArray['key'] : $outkey;
+					$outref = !empty($hookmanager->resArray['value']) ? $hookmanager->resArray['value'] : $outref;
+					$outval = !empty($hookmanager->resPrint) ? $hookmanager->resPrint : $outval;
+					$outqty = !empty($hookmanager->resArray['qty']) ? $hookmanager->resArray['qty'] : $outqty;
+					$outpriceHt = !empty($hookmanager->resArray['price_ht']) ? $hookmanager->resArray['price_ht'] : $outpriceHt;
+					$outdiscount = !empty($hookmanager->resArray['discount']) ? $hookmanager->resArray['discount'] : $outdiscount;
+					$outtype = !empty($hookmanager->resArray['type']) ? $hookmanager->resArray['type'] : $outtype;
+					$outdurationvalue = !empty($hookmanager->resArray['duration_value']) ? $hookmanager->resArray['duration_value'] : $outdurationvalue;
+					$outdurationunit = !empty($hookmanager->resArray['duration_unit']) ? $hookmanager->resArray['duration_unit'] : $outdurationunit;
+					$outdisabled = !empty($hookmanager->resArray['disabled']) ? $hookmanager->resArray['disabled'] : $outdisabled;
+					$outdescription = !empty($hookmanager->resArray['description']) ? $hookmanager->resArray['description'] : $outdescription;
+				}
 
 
 				// Add new entry
@@ -3406,13 +3427,13 @@ class Form
 						'value'=>$outref,
 						'label'=>$outval,
 						'qty'=>$outqty,
-						'price_ht'=>price2num($objp->unitprice, 'MU'),
+						'price_ht'=> $outpriceHt,
 						'discount'=>$outdiscount,
 						'type'=>$outtype,
 						'duration_value'=>$outdurationvalue,
 						'duration_unit'=>$outdurationunit,
-						'disabled'=>(empty($objp->idprodfournprice) ? true : false),
-						'description'=>$objp->description
+						'disabled'=> $outdisabled,
+						'description'=> $outdescription
 					)
 				);
 				// Exemple of var_dump $outarray
