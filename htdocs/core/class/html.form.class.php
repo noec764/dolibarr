@@ -3393,7 +3393,7 @@ class Form
 				$outdisabled = empty($objp->idprodfournprice);
 				$outdescription = $objp->description;
 
-				$resHook = $hookmanager->executeHooks('addContentSelectProductLine', [], $objp); // Note that $action and $object may have been modified by hook
+				$resHook = $hookmanager->executeHooks('addContentSelectSupplierProductLine', [], $objp); // Note that $action and $object may have been modified by hook
 				if ($resHook < 0) {
 					$this->error = $hookmanager->error;
 					$this->errors += $hookmanager->errors;
