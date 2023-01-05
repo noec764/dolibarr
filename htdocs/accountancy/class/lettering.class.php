@@ -254,8 +254,7 @@ class Lettering extends BookKeeping
 		$sql .= " LEFT JOIN " . MAIN_DB_PREFIX . "bank_url AS bu ON bu.fk_bank = ab.fk_doc";
 		$sql .= " LEFT JOIN " . MAIN_DB_PREFIX . "bank_url AS bu2 ON bu2.url_id = bu.url_id";
 		$sql .= " LEFT JOIN " . MAIN_DB_PREFIX . "accounting_bookkeeping AS ab2 ON ab2.fk_doc = bu2.fk_bank";
-		$sql .= " WHERE ab.rowid IN (" . $this->db->sanitize(implode(',', $ids)) . ")";
-		$sql .= " AND ab.doc_type = 'bank'";
+		$sql .= " WHERE ab.doc_type = 'bank'";
 		$sql .= " AND ab2.doc_type = 'bank'";
 		$sql .= " AND bu.type = 'company'";
 		$sql .= " AND bu2.type = 'company'";
