@@ -2067,7 +2067,30 @@ if ($id > 0) {
 			// related contact
 			print '<tr><td>'.$langs->trans("ActionOnContact").'</td><td>';
 			print '<div class="maxwidth200onsmartphone">';
-			print img_picto('', 'contact', 'class="paddingrightonly"').$form->selectcontacts(!getDolGlobalString('MAIN_ACTIONCOM_CAN_ADD_ANY_CONTACT') ? $object->socid : 0, array_keys($object->socpeopleassigned), 'socpeopleassigned[]', 1, '', '', 1, 'minwidth300 widthcentpercentminusx', false, 0, 0, array(), 'multiple', 'contactid');
+
+			$searchSocid = $object->socid > 0 ? $object->socid : -1;
+			if ($searchSocid <= 0 && getDolGlobalString('MAIN_ACTIONCOM_CAN_ADD_ANY_CONTACT')) {
+				$searchSocid = 0;
+			}
+
+			print img_picto('', 'contact', 'class="paddingrightonly"');
+			print $form->selectcontacts(
+				$searchSocid,
+				array_keys($object->socpeopleassigned),
+				'socpeopleassigned[]',
+				1,
+				'',
+				'',
+				1,
+				'minwidth300 widthcentpercentminusx',
+				false,
+				0,
+				0,
+				array(),
+				'multiple',
+				'contactid'
+			);
+
 			print '</div>';
 			print '</td>';
 			print '</tr>';
