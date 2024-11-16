@@ -2068,10 +2068,7 @@ if ($id > 0) {
 			print '<tr><td>'.$langs->trans("ActionOnContact").'</td><td>';
 			print '<div class="maxwidth200onsmartphone">';
 
-			$searchSocid = $object->socid > 0 ? $object->socid : -1;
-			if ($searchSocid <= 0 && getDolGlobalString('MAIN_ACTIONCOM_CAN_ADD_ANY_CONTACT')) {
-				$searchSocid = 0;
-			}
+			$searchSocid = ($object->socid > 0) ? $object->socid : (getDolGlobalString('MAIN_ACTIONCOM_CAN_ADD_ANY_CONTACT') ? 0 : -1);
 
 			print img_picto('', 'contact', 'class="paddingrightonly"');
 			print $form->selectcontacts(
