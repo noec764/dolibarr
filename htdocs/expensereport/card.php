@@ -938,7 +938,12 @@ if (empty($reshook)) {
 	if ($action == "confirm_setdraft" && GETPOST('confirm', 'alpha') == "yes" && $id > 0 && $user->rights->expensereport->creer) {
 		$object = new ExpenseReport($db);
 		$object->fetch($id);
-		if ($user->id == $object->fk_user_author || $user->id == $object->fk_user_valid) {
+		if (
+			$user->id == $object->fk_user_author 
+			|| in_array($object->fk_user_author, $user->getAllChildIds(1))
+			|| $user->id == $object->fk_user_valid
+			|| in_array($object->fk_user_valid, $user->getAllChildIds(1))
+		) {
 			$result = $object->setStatut(0);
 
 			if ($result > 0) {
