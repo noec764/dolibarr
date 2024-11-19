@@ -1702,6 +1702,7 @@ class EmailCollector extends CommonObject
 				// If there is a filter on trackid
 				if ($searchfilterdoltrackid > 0) {
 					if (empty($trackidfoundintorecipienttype)) {
+                        var_dump($headers['References']);
 						if (empty($headers['References']) || !preg_match('/@'.preg_quote($host, '/').'/', $headers['References'])) {
 							$nbemailprocessed++;
 							dol_syslog(" Discarded - No suffix in email recipient and no Header References found matching the signature of the application, so with a trackid coming from the application");
@@ -1815,7 +1816,7 @@ class EmailCollector extends CommonObject
 				//var_dump($plainmsg); exit;
 
 				//$htmlmsg,$plainmsg,$charset,$attachments
-				$messagetext = $plainmsg ? $plainmsg : dol_string_nohtmltag($htmlmsg, 0);
+				$messagetext = !empty($plainmsg) || $plainmsg !== "\n" ? $plainmsg : dol_string_nohtmltag($htmlmsg, 0);
 				// Removed emojis
 
 				if (utf8_valid($messagetext)) {
