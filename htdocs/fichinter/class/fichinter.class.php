@@ -1143,6 +1143,21 @@ class Fichinter extends CommonObject
 		// phpcs:enable
 		global $conf;
 
+		$previousContratsql = "SELECT fk_contrat FROM ".MAIN_DB_PREFIX."fichinter ";
+		$previousContratsql .= " WHERE rowid = ".((int) $this->id) . " LIMIT 1";
+		$resql = $this->db->query($previousContratsql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return -1;
+		}
+
+		$obj = $this->db->fetch_object($resql);
+		$oldcontractid = $obj->fk_contrat;
+		$retDelObjectLinked = $this->deleteObjectLinked($this->id, $this->element, $oldcontractid, 'contrat');
+		if ($retDelObjectLinked < 0) {
+			return -1;
+		}
+
 		if ($user->rights->ficheinter->creer) {
 			$sql = "UPDATE ".MAIN_DB_PREFIX."fichinter ";
 			$sql .= " SET fk_contrat = ".((int) $contractid);
@@ -1150,6 +1165,13 @@ class Fichinter extends CommonObject
 
 			if ($this->db->query($sql)) {
 				$this->fk_contrat = $contractid;
+
+				// Add object linked
+				$retAddObjectLinked = $this->add_object_linked('contrat', $contractid, $user);
+				if ($retAddObjectLinked < 0) {
+					return -1;
+				}
+
 				return 1;
 			} else {
 				$this->error = $this->db->error();
