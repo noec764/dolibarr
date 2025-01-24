@@ -2143,6 +2143,16 @@ if ($action == 'create') {
 					}
 				}
 
+				if (isModEnabled('ficheinter') && $object->statut > 0) {
+					$langs->load("interventions");
+					if ($user->rights->ficheinter->creer) {
+						print dolGetButtonAction($langs->trans('AddIntervention'), '', 'default', DOL_URL_ROOT.'/fichinter/card.php?action=create&origin='.$object->element.'&contratid='.$object->id.'&socid='.$object->thirdparty->id, '', true, $params);
+					} else {
+						$params['attr']['title'] = $langs->trans("NotEnoughPermissions");
+						print dolGetButtonAction($langs->trans('AddIntervention'), '', 'default', '#', '', false, $params);
+					}
+				}
+
 				if ($object->nbofservicesclosed > 0 || $object->nbofserviceswait > 0) {
 					if ($user->rights->contrat->activer) {
 						print dolGetButtonAction($langs->trans('ActivateAllContracts'), '', 'default', $_SERVER["PHP_SELF"].'?id='.$object->id.'&action=activate&token='.newToken(), '', true, $params);

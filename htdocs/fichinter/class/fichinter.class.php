@@ -341,6 +341,13 @@ class Fichinter extends CommonObject
 				}
 			}
 
+			// Add contrat to linked object
+			if (!$error && $this->fk_contrat) {
+				$ret = $this->set_contrat($user, $this->fk_contrat);
+				if (!$ret) {
+					dol_print_error($this->db);
+				}
+			}
 
 			if (!$error && !$notrigger) {
 				// Call trigger
