@@ -200,6 +200,11 @@ class Fichinter extends CommonObject
 	const STATUS_CLOSED = 3;
 
 	/**
+	 * Canceled status
+	 */
+	const STATUS_CANCELED = -1;
+
+	/**
 	 * Date of delivery of receipt
 	 * @var null|int|''		Date the intervention receipt has been delivered
 	 * @deprecated Use $delivery_date_receipt
@@ -713,6 +718,112 @@ class Fichinter extends CommonObject
 	}
 
 	/**
+	 * 	Cancel an fichinter
+	 *
+	 *	@return	int						<0 if KO, >0 if OK
+	 */
+	public function cancel()
+	{
+		global $conf, $user, $langs;
+
+		$error = 0;
+
+		$this->db->begin();
+
+		$sql = "UPDATE ".MAIN_DB_PREFIX."fichinter";
+		$sql .= " SET fk_statut = ".self::STATUS_CANCELED.",";
+		$sql .= " fk_user_modif = ".((int) $user->id);
+		$sql .= " WHERE rowid = ".((int) $this->id);
+		$sql .= " AND fk_statut = ".self::STATUS_VALIDATED;
+
+		dol_syslog(get_class($this)."::cancel", LOG_DEBUG);
+		if ($this->db->query($sql)) {
+
+			if (!$error) {
+				// Call trigger
+				$result = $this->call_trigger('FICHINTER_CANCEL', $user);
+				if ($result < 0) {
+					$error++;
+				}
+				// End call triggers
+			}
+
+			if (!$error) {
+				$this->statut = self::STATUS_CANCELED;
+				$this->db->commit();
+				return 1;
+			} else {
+				foreach ($this->errors as $errmsg) {
+					dol_syslog(get_class($this)."::cancel ".$errmsg, LOG_ERR);
+					$this->error .= ($this->error ? ', '.$errmsg : $errmsg);
+				}
+				$this->db->rollback();
+				return -1 * $error;
+			}
+		} else {
+			$this->error = $this->db->error();
+			$this->db->rollback();
+			return -1;
+		}
+	}
+
+
+	/**
+	 *	Tag the fichinter as validated (opened)
+	 *	Function used when fichinter is reopend after being closed.
+	 *
+	 *	@param      User	$user       Object user that change status
+	 *	@return     int         		<0 if KO, 0 if nothing is done, >0 if OK
+	 */
+	public function set_reopen($user)
+	{
+		// phpcs:enable
+		$error = 0;
+
+		if ($this->statut != self::STATUS_CANCELED && $this->statut != self::STATUS_CLOSED) {
+			dol_syslog(get_class($this)."::set_reopen fichinter has not status closed", LOG_WARNING);
+			return 0;
+		}
+
+		$this->db->begin();
+
+		$sql = 'UPDATE '.MAIN_DB_PREFIX.'fichinter';
+		$sql .= ' SET fk_statut='.self::STATUS_VALIDATED;
+		$sql .= " fk_user_modif = ".((int) $user->id);
+		$sql .= " WHERE rowid = ".((int) $this->id);
+
+		dol_syslog(get_class($this)."::set_reopen", LOG_DEBUG);
+		$resql = $this->db->query($sql);
+		if ($resql) {
+			// Call trigger
+			$result = $this->call_trigger('FICHINTER_REOPEN', $user);
+			if ($result < 0) {
+				$error++;
+			}
+			// End call triggers
+		} else {
+			$error++;
+			$this->error = $this->db->lasterror();
+			dol_print_error($this->db);
+		}
+
+		if (!$error) {
+			$this->statut = self::STATUS_VALIDATED;
+			$this->billed = 0;
+
+			$this->db->commit();
+			return 1;
+		} else {
+			foreach ($this->errors as $errmsg) {
+				dol_syslog(get_class($this)."::set_reopen ".$errmsg, LOG_ERR);
+				$this->error .= ($this->error ? ', '.$errmsg : $errmsg);
+			}
+			$this->db->rollback();
+			return -1 * $error;
+		}
+	}
+
+	/**
 	 *  Close intervention
 	 *
 	 * 	@param      User	$user       Object user that close
@@ -852,15 +963,19 @@ class Fichinter extends CommonObject
 			$this->labelStatus[self::STATUS_VALIDATED] = $langs->transnoentitiesnoconv('Validated');
 			$this->labelStatus[self::STATUS_BILLED] = $langs->transnoentitiesnoconv('StatusInterInvoiced');
 			$this->labelStatus[self::STATUS_CLOSED] = $langs->transnoentitiesnoconv('Done');
+			$this->labelStatus[self::STATUS_CANCELED] = $langs->transnoentitiesnoconv('Canceled');
 			$this->labelStatusShort[self::STATUS_DRAFT] = $langs->transnoentitiesnoconv('Draft');
 			$this->labelStatusShort[self::STATUS_VALIDATED] = $langs->transnoentitiesnoconv('Validated');
 			$this->labelStatusShort[self::STATUS_BILLED] = $langs->transnoentitiesnoconv('StatusInterInvoiced');
 			$this->labelStatusShort[self::STATUS_CLOSED] = $langs->transnoentitiesnoconv('Done');
+			$this->labelStatusShort[self::STATUS_CANCELED] = $langs->transnoentitiesnoconv('Canceled');
 		}
 
 		$statuscode = 'status'.$status;
 		if ($status == self::STATUS_BILLED || $status == self::STATUS_CLOSED) {
 			$statuscode = 'status6';
+		} elseif($status == self::STATUS_CANCELED) {
+			$statuscode = 'status9';
 		}
 
 		$signed_label = ' (' . $this->getLibSignedStatus() . ')';
