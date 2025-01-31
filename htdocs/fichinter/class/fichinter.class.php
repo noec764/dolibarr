@@ -130,7 +130,7 @@ class Fichinter extends CommonObject
 	/**
 	 * @var int status
 	 */
-	public $statut = 0; // 0=draft, 1=validated, 2=invoiced, 3=Terminate
+	public $statut = 0; // 0=draft, 1=validated, 2=invoiced, 3=Terminate, -1=Canceled
 
 	/**
 	 * @var string description
@@ -182,6 +182,11 @@ class Fichinter extends CommonObject
 	 * Closed
 	 */
 	const STATUS_CLOSED = 3;
+
+	/**
+	 * Canceled status
+	 */
+	const STATUS_CANCELED = -1;
 
 
 	/**
@@ -520,7 +525,7 @@ class Fichinter extends CommonObject
 		$error = 0;
 
 		// Protection
-		if ($this->statut <= self::STATUS_DRAFT) {
+		if ($this->statut === self::STATUS_DRAFT) {
 			return 0;
 		}
 
@@ -666,6 +671,109 @@ class Fichinter extends CommonObject
 			}
 		}
 	}
+	/**
+	 * 	Cancel an fichinter
+	 *
+	 *	@return	int						<0 if KO, >0 if OK
+	 */
+	public function cancel()
+	{
+		global $conf, $user, $langs;
+
+		$error = 0;
+
+		$this->db->begin();
+
+		$sql = "UPDATE ".MAIN_DB_PREFIX."fichinter";
+		$sql .= " SET fk_statut = ".self::STATUS_CANCELED.",";
+		$sql .= " fk_user_modif = ".((int) $user->id);
+		$sql .= " WHERE rowid = ".((int) $this->id);
+		$sql .= " AND fk_statut = ".self::STATUS_VALIDATED;
+
+		dol_syslog(get_class($this)."::cancel", LOG_DEBUG);
+		if ($this->db->query($sql)) {
+
+			if (!$error) {
+				// Call trigger
+				$result = $this->call_trigger('FICHINTER_CANCEL', $user);
+				if ($result < 0) {
+					$error++;
+				}
+				// End call triggers
+			}
+
+			if (!$error) {
+				$this->statut = self::STATUS_CANCELED;
+				$this->db->commit();
+				return 1;
+			} else {
+				foreach ($this->errors as $errmsg) {
+					dol_syslog(get_class($this)."::cancel ".$errmsg, LOG_ERR);
+					$this->error .= ($this->error ? ', '.$errmsg : $errmsg);
+				}
+				$this->db->rollback();
+				return -1 * $error;
+			}
+		} else {
+			$this->error = $this->db->error();
+			$this->db->rollback();
+			return -1;
+		}
+	}
+	/**
+	 *	Tag the fichinter as validated (opened)
+	 *	Function used when fichinter is reopend after being closed.
+	 *
+	 *	@param      User	$user       Object user that change status
+	 *	@return     int         		<0 if KO, 0 if nothing is done, >0 if OK
+	 */
+	public function set_reopen($user)
+	{
+		// phpcs:enable
+		$error = 0;
+
+		if ($this->statut != self::STATUS_CANCELED && $this->statut != self::STATUS_CLOSED) {
+			dol_syslog(get_class($this)."::set_reopen fichinter has not status closed", LOG_WARNING);
+			return 0;
+		}
+
+		$this->db->begin();
+
+		$sql = 'UPDATE '.MAIN_DB_PREFIX.'fichinter';
+		$sql .= ' SET fk_statut='.self::STATUS_VALIDATED;
+		$sql .= " fk_user_modif = ".((int) $user->id);
+		$sql .= " WHERE rowid = ".((int) $this->id);
+
+		dol_syslog(get_class($this)."::set_reopen", LOG_DEBUG);
+		$resql = $this->db->query($sql);
+		if ($resql) {
+			// Call trigger
+			$result = $this->call_trigger('FICHINTER_REOPEN', $user);
+			if ($result < 0) {
+				$error++;
+			}
+			// End call triggers
+		} else {
+			$error++;
+			$this->error = $this->db->lasterror();
+			dol_print_error($this->db);
+		}
+
+		if (!$error) {
+			$this->statut = self::STATUS_VALIDATED;
+			$this->billed = 0;
+
+			$this->db->commit();
+			return 1;
+		} else {
+			foreach ($this->errors as $errmsg) {
+				dol_syslog(get_class($this)."::set_reopen ".$errmsg, LOG_ERR);
+				$this->error .= ($this->error ? ', '.$errmsg : $errmsg);
+			}
+			$this->db->rollback();
+			return -1 * $error;
+		}
+	}
 
 	/**
 	 *	Returns amount based on user thm
@@ -756,14 +864,17 @@ class Fichinter extends CommonObject
 			$this->statuts[self::STATUS_VALIDATED] = $langs->transnoentitiesnoconv('Validated');
 			$this->statuts[self::STATUS_BILLED] = $langs->transnoentitiesnoconv('StatusInterInvoiced');
 			$this->statuts[self::STATUS_CLOSED] = $langs->transnoentitiesnoconv('Done');
+			$this->statuts[self::STATUS_CANCELED] = $langs->transnoentitiesnoconv('Canceled');
 			$this->statuts_short[self::STATUS_DRAFT] = $langs->transnoentitiesnoconv('Draft');
 			$this->statuts_short[self::STATUS_VALIDATED] = $langs->transnoentitiesnoconv('Validated');
 			$this->statuts_short[self::STATUS_BILLED] = $langs->transnoentitiesnoconv('StatusInterInvoiced');
 			$this->statuts_short[self::STATUS_CLOSED] = $langs->transnoentitiesnoconv('Done');
+			$this->statuts_short[self::STATUS_CANCELED] = $langs->transnoentitiesnoconv('Canceled');
 			$this->statuts_logo[self::STATUS_DRAFT] = 'status0';
 			$this->statuts_logo[self::STATUS_VALIDATED] = 'status1';
 			$this->statuts_logo[self::STATUS_BILLED] = 'status6';
 			$this->statuts_logo[self::STATUS_CLOSED] = 'status6';
+			$this->statuts_logo[self::STATUS_CANCELED] = 'status9';
 		}
 
 		return dolGetStatus($this->statuts[$status], $this->statuts_short[$status], '', $this->statuts_logo[$status], $mode);
