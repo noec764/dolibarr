@@ -130,7 +130,7 @@ class Fichinter extends CommonObject
 	/**
 	 * @var int status
 	 */
-	public $statut = 0; // 0=draft, 1=validated, 2=invoiced, 3=Terminate, -1=Canceled
+	public $statut = 0; // 0=draft, 1=validated, 2=invoiced, 3=Terminate, 4=Canceled
 
 	/**
 	 * @var string description
@@ -186,7 +186,7 @@ class Fichinter extends CommonObject
 	/**
 	 * Canceled status
 	 */
-	const STATUS_CANCELED = -1;
+	const STATUS_CANCELED = 4;
 
 
 	/**
@@ -525,7 +525,7 @@ class Fichinter extends CommonObject
 		$error = 0;
 
 		// Protection
-		if ($this->statut === self::STATUS_DRAFT) {
+		if ($this->statut <= self::STATUS_DRAFT) {
 			return 0;
 		}
 
@@ -671,6 +671,8 @@ class Fichinter extends CommonObject
 			}
 		}
 	}
+
+
 	/**
 	 * 	Cancel an fichinter
 	 *
@@ -720,6 +722,8 @@ class Fichinter extends CommonObject
 			return -1;
 		}
 	}
+
+
 	/**
 	 *	Tag the fichinter as validated (opened)
 	 *	Function used when fichinter is reopend after being closed.
@@ -741,7 +745,7 @@ class Fichinter extends CommonObject
 
 		$sql = 'UPDATE '.MAIN_DB_PREFIX.'fichinter';
 		$sql .= ' SET fk_statut='.self::STATUS_VALIDATED;
-		$sql .= " fk_user_modif = ".((int) $user->id);
+		$sql .= ", fk_user_modif = ".((int) $user->id);
 		$sql .= " WHERE rowid = ".((int) $this->id);
 
 		dol_syslog(get_class($this)."::set_reopen", LOG_DEBUG);

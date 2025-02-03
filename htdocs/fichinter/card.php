@@ -572,12 +572,18 @@ if (empty($reshook)) {
 		}
 	} elseif ($action == 'confirm_reopen' && $user->rights->ficheinter->creer) {
 		// Reopen
-		$result = $object->setStatut(Fichinter::STATUS_VALIDATED);
+		$result = $object->set_reopen($user);
 		if ($result > 0) {
 			header('Location: '.$_SERVER["PHP_SELF"].'?id='.$object->id);
 			exit;
 		} else {
 			$mesg = $object->error;
+		}
+	} elseif ($action == 'confirm_cancel' && $confirm == 'yes' && $permissiontodelete) {
+		$result = $object->cancel();
+
+		if ($result < 0) {
+			setEventMessages($object->error, $object->errors, 'errors');
 		}
 	} elseif ($action == 'updateline' && $user->rights->ficheinter->creer && GETPOST('save', 'alpha')) {
 		// Mise a jour d'une ligne d'intervention
@@ -1123,6 +1129,13 @@ if ($action == 'create') {
 	// Confirm back to open
 	if ($action == 'reopen') {
 		$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id, $langs->trans('ReOpen'), $langs->trans('ConfirmReopenIntervention', $object->ref), 'confirm_reopen', '', 0, 1);
+	}
+
+	// Confirm back to open
+	if ($action == 'cancel') {
+		$text = $langs->trans('ConfirmCancelIntervention', $object->ref);
+		$formquestion = array();
+		$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id, $langs->trans("Cancel"), $text, 'confirm_cancel', $formquestion, 0, 1);
 	}
 
 	// Confirm deletion of line
@@ -1694,6 +1707,14 @@ if ($action == 'create') {
 				// Clone
 				if ($user->rights->ficheinter->creer) {
 					print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&socid='.$object->socid.'&action=clone&token='.newToken().'&object=ficheinter">'.$langs->trans("ToClone").'</a></div>';
+				}
+
+				// Cancel fichinter
+				if (
+					$object->statut == Fichinter::STATUS_VALIDATED
+					&& (!empty($conf->global->MAIN_USE_ADVANCED_PERMS) && $user->rights->ficheinter->ficheinter_advance->unvalidate)
+				) {
+					print '<a class="butActionDelete" href="'.$_SERVER["PHP_SELF"].'?id='.$object->id.'&action=cancel&token='.newToken().'">'.$langs->trans("Cancel").'</a>';
 				}
 
 				// Delete
