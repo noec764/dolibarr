@@ -720,7 +720,7 @@ class Fichinter extends CommonObject
 	/**
 	 * 	Cancel an fichinter
 	 *
-	 *	@return	int						<0 if KO, >0 if OK
+	 *	@return	int			Return integer <0 if KO, >0 if OK
 	 */
 	public function cancel()
 	{

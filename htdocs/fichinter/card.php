@@ -1783,7 +1783,7 @@ if ($action == 'create') {
 
 				// Send
 				if (empty($user->socid)) {
-					if ($object->statut > Fichinter::STATUS_DRAFT) {
+					if (!in_array($object->statut, [Fichinter::STATUS_DRAFT, Fichinter::STATUS_CANCELED])) {
 						if (!getDolGlobalString('MAIN_USE_ADVANCED_PERMS') || $user->hasRight('ficheinter', 'ficheinter_advance', 'send')) {
 							print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER["PHP_SELF"].'?id='.$object->id.'&action=presend&token='.newToken().'&mode=init#formmailbeforetitle">'.$langs->trans('SendMail').'</a></div>';
 						} else {
@@ -1841,7 +1841,7 @@ if ($action == 'create') {
 				}
 
 				// Sign
-				if ($object->statut > Fichinter::STATUS_DRAFT) {
+				if (!in_array($object->statut, [Fichinter::STATUS_DRAFT, Fichinter::STATUS_CLOSED, Fichinter::STATUS_CANCELED])) {
 					if ($object->signed_status != Fichinter::$SIGNED_STATUSES['STATUS_SIGNED_ALL']) {
 						print '<div class="inline-block divButAction"><a class="butAction" href="' . $_SERVER["PHP_SELF"] . '?id=' . $object->id . '&action=sign&token=' . newToken() . '">' . $langs->trans("InterventionSign") . '</a></div>';
 					} else {
