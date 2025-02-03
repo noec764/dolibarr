@@ -665,7 +665,7 @@ if (empty($reshook)) {
 		} else {
 			$mesg = $object->error;
 		}
-	} elseif ($action == 'confirm_cancel' && $confirm == 'yes' && $permissiontodelete) {
+	} elseif ($action == 'confirm_cancel' && $confirm == 'yes' && $user->hasRight('ficheinter', 'cancel')) {
 		$result = $object->cancel();
 
 		if ($result < 0) {
@@ -1860,11 +1860,12 @@ if ($action == 'create') {
 				}
 
 				// Cancel fichinter
-				if (
-					$object->statut == Fichinter::STATUS_VALIDATED
-					&& (!empty($conf->global->MAIN_USE_ADVANCED_PERMS) && $user->rights->ficheinter->ficheinter_advance->unvalidate)
-				) {
-					print '<div class="inline-block divButAction"><a class="butActionDelete" href="'.$_SERVER["PHP_SELF"].'?id='.$object->id.'&action=cancel&token='.newToken().'">'.$langs->trans("Cancel").'</a></div>';
+				if ($object->statut == Fichinter::STATUS_VALIDATED) {
+					if ($user->hasRight('ficheinter', 'cancel')) {
+						print '<div class="inline-block divButAction"><a class="butActionDelete" href="'.$_SERVER["PHP_SELF"].'?id='.$object->id.'&action=cancel&token='.newToken().'">'.$langs->trans("Cancel").'</a></div>';
+					} else {
+						print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#">'.$langs->trans('Cancel').'</a></div>';
+					}
 				}
 
 				// Delete

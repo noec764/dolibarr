@@ -724,7 +724,7 @@ class Fichinter extends CommonObject
 	 */
 	public function cancel()
 	{
-		global $conf, $user, $langs;
+		global $user;
 
 		$error = 0;
 
