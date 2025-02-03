@@ -738,7 +738,6 @@ class Fichinter extends CommonObject
 
 		dol_syslog(get_class($this)."::cancel", LOG_DEBUG);
 		if ($this->db->query($sql)) {
-
 			if (!$error) {
 				// Call trigger
 				$result = $this->call_trigger('FICHINTER_CANCEL', $user);
@@ -775,7 +774,7 @@ class Fichinter extends CommonObject
 	 *	@param      User	$user       Object user that change status
 	 *	@return     int         		<0 if KO, 0 if nothing is done, >0 if OK
 	 */
-	public function set_reopen($user)
+	public function setReopen($user)
 	{
 		// phpcs:enable
 		$error = 0;
@@ -974,7 +973,7 @@ class Fichinter extends CommonObject
 		$statuscode = 'status'.$status;
 		if ($status == self::STATUS_BILLED || $status == self::STATUS_CLOSED) {
 			$statuscode = 'status6';
-		} elseif($status == self::STATUS_CANCELED) {
+		} elseif ($status == self::STATUS_CANCELED) {
 			$statuscode = 'status9';
 		}
 

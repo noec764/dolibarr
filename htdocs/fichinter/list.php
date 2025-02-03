@@ -662,7 +662,7 @@ if (!empty($arrayfields['f.fk_statut']['checked'])) {
 		unset($objecttmp->labelStatus[Fichinter::STATUS_BILLED]); // Option deprecated. In a future, billed must be managed with a dedicated field to 0 or 1
 	}
 
-    // @phan-suppress-next-line PhanPluginSuspiciousParamOrder
+	// @phan-suppress-next-line PhanPluginSuspiciousParamOrder
 	print $form->selectarray('search_status', $objecttmp->labelStatus, $search_status, 1, 0, 0, '', 1, 0, 0, '', 'search_status width100 onrightofpage');
 	print '</td>';
 }
