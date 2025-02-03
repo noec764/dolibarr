@@ -202,7 +202,7 @@ class Fichinter extends CommonObject
 	/**
 	 * Canceled status
 	 */
-	const STATUS_CANCELED = -1;
+	const STATUS_CANCELED = 4;
 
 	/**
 	 * Date of delivery of receipt
@@ -789,7 +789,7 @@ class Fichinter extends CommonObject
 
 		$sql = 'UPDATE '.MAIN_DB_PREFIX.'fichinter';
 		$sql .= ' SET fk_statut='.self::STATUS_VALIDATED;
-		$sql .= " fk_user_modif = ".((int) $user->id);
+		$sql .= ", fk_user_modif = ".((int) $user->id);
 		$sql .= " WHERE rowid = ".((int) $this->id);
 
 		dol_syslog(get_class($this)."::set_reopen", LOG_DEBUG);
