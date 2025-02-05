@@ -1,5 +1,4 @@
 <?php
-
 /* Copyright (C) 2000-2007	Rodolphe Quiedeville		<rodolphe@quiedeville.org>
  * Copyright (C) 2003		Jean-Louis Bergamo			<jlb@j1b.org>
  * Copyright (C) 2004-2024	Laurent Destailleur			<eldy@users.sourceforge.net>
@@ -2172,7 +2171,7 @@ function dol_escape_htmltag($stringtoescape, $keepb = 0, $keepn = 0, $noescapeta
 		$tmp = str_ireplace('__DONOTDECODEAPOS', '&apos', $tmp);
 		$tmp = str_ireplace('__DONOTDECODE39', '&#39', $tmp);
 
-		$tmp = str_ireplace('&#39;', '__SIMPLEQUOTE', $tmp);	// HTML 4
+		$tmp = str_ireplace('&#39;', '__SIMPLEQUOTE__', $tmp);	// HTML 4
 	}
 	if (!$keepb) {
 		$tmp = strtr($tmp, array("<b>" => '', '</b>' => '', '<strong>' => '', '</strong>' => ''));
@@ -2213,7 +2212,7 @@ function dol_escape_htmltag($stringtoescape, $keepb = 0, $keepn = 0, $noescapeta
 					if (preg_match('/<'.preg_quote($tagtoreplace, '/').'(\s+)([^>]+)>/', $tmp, $reg)) {
 						// We want to protect the attribute part ... in '<xxx ...>' to avoid transformation by htmlentities() later
 						$tmpattributes = str_ireplace(array('[', ']'), '_', $reg[2]);	// We must never have [ ] inside the attribute string
-						$tmpattributes = str_ireplace('"', '__DOUBLEQUOTE', $tmpattributes);
+						$tmpattributes = str_ireplace('"', '__DOUBLEQUOTE__', $tmpattributes);
 						$tmpattributes = preg_replace('/[^a-z0-9_%,\/\?\;\s=&\.\-@:\.#\+]/i', '', $tmpattributes);
 						//$tmpattributes = preg_replace("/float:\s*(left|right)/", "", $tmpattributes);	// Disabled: we must not remove content
 						$tmp = str_replace('<'.$tagtoreplace.$reg[1].$reg[2].'>', '__BEGINTAGTOREPLACE'.$tagtoreplace.'['.$tmpattributes.']__', $tmp);
@@ -2223,9 +2222,9 @@ function dol_escape_htmltag($stringtoescape, $keepb = 0, $keepn = 0, $noescapeta
 				} while ($diff);
 			}
 
-			$tmp = str_ireplace('&quot', '__DOUBLEQUOTE', $tmp);
-			$tmp = str_ireplace('&lt', '__LESSTAN', $tmp);
-			$tmp = str_ireplace('&gt', '__GREATERTHAN', $tmp);
+			$tmp = str_ireplace('&quot', '__DOUBLEQUOTENOSEMICOLON__', $tmp);
+			$tmp = str_ireplace('&lt', '__LESSTHAN__', $tmp);
+			$tmp = str_ireplace('&gt', '__GREATERTHAN__', $tmp);
 		}
 
 		// Warning: htmlentities encode HTML tags like <abc> & into &amp; and more (but not &lt; &gt; &quotes; &apos; &#39; &amp; that remains untouched).
@@ -2243,12 +2242,14 @@ function dol_escape_htmltag($stringtoescape, $keepb = 0, $keepn = 0, $noescapeta
 				$result = preg_replace('/__BEGINENDTAGTOREPLACE'.$tagtoreplace.'\[([^\]]*)\]__/', '<'.$tagtoreplace.' \1 />', $result);
 			}
 
-			$result = str_ireplace('__DOUBLEQUOTE', '"', $result);
-			$result = str_ireplace('__LESSTAN', '&lt', $result);
-			$result = str_ireplace('__GREATERTHAN', '&gt', $result);
+			$result = str_ireplace('__DOUBLEQUOTE__', '"', $result);
+
+			$result = str_ireplace('__DOUBLEQUOTENOSEMICOLON__', '&quot', $result);
+			$result = str_ireplace('__LESSTHAN__', '&lt', $result);
+			$result = str_ireplace('__GREATERTHAN__', '&gt', $result);
 		}
 
-		$result = str_ireplace('__SIMPLEQUOTE', '&#39;', $result);
+		$result = str_ireplace('__SIMPLEQUOTE__', '&#39;', $result);
 
 		//$result="\n\n\n".var_export($tmp, true)."\n\n\n".var_export($result, true);
 
@@ -5159,7 +5160,7 @@ function img_picto($titlealt, $picto, $moreatt = '', $pictoisfullpath = 0, $srco
 			if (in_array($pictowithouttext, array('card', 'bell', 'clock', 'establishment', 'file', 'file-o', 'generic', 'minus-square', 'object_generic', 'pdf', 'plus-square', 'timespent', 'note', 'off', 'on', 'object_bookmark', 'bookmark', 'vcard'))) {
 				$fa = 'far';
 			}
-			if (in_array($pictowithouttext, array('black-tie', 'github', 'google', 'microsoft', 'skype', 'twitter', 'facebook', 'linkedin', 'instagram', 'snapchat', 'stripe', 'stripe-s', 'youtube', 'google-plus-g', 'whatsapp'))) {
+			if (in_array($pictowithouttext, array('black-tie', 'discord', 'facebook', 'flickr', 'github', 'google', 'google-plus-g', 'instagram', 'linkedin', 'meetup', 'microsoft', 'pinterest', 'skype', 'slack', 'twitter', 'reddit', 'snapchat', 'stripe', 'stripe-s', 'tumblr', 'viadeo', 'whatsapp', 'youtube'))) {
 				$fa = 'fab';
 			}
 
@@ -5390,7 +5391,6 @@ function img_picto($titlealt, $picto, $moreatt = '', $pictoisfullpath = 0, $srco
  */
 function getImgPictoNameList()
 {
-
 	return array(
 		'1downarrow', '1uparrow', '1leftarrow', '1rightarrow', '1uparrow_selected', '1downarrow_selected', '1leftarrow_selected', '1rightarrow_selected',
 		'accountancy', 'accounting_account', 'account', 'accountline', 'action', 'add', 'address', 'ai', 'angle-double-down', 'angle-double-up', 'asset',
@@ -5414,13 +5414,13 @@ function getImgPictoNameList()
 		'paiment', 'paragraph', 'play', 'pdf', 'phone', 'phoning', 'phoning_mobile', 'phoning_fax', 'playdisabled', 'previous', 'poll', 'pos', 'printer', 'product', 'propal', 'proposal', 'puce',
 		'stock', 'resize', 'service', 'stats',
 		'security', 'setup', 'share-alt', 'sign-out', 'split', 'stripe', 'stripe-s', 'switch_off', 'switch_on', 'switch_on_grey', 'switch_on_warning', 'switch_on_red', 'tools', 'unlink', 'uparrow', 'user', 'user-tie', 'vcard', 'wrench',
-		'github', 'google', 'jabber', 'microsoft', 'skype', 'twitter', 'facebook', 'linkedin', 'instagram', 'snapchat', 'youtube', 'google-plus-g', 'whatsapp',
+		'discord', 'facebook', 'flickr', 'instagram','linkedin', 'github', 'google', 'jabber', 'meetup', 'microsoft', 'skype', 'slack', 'twitter', 'pinterest', 'reddit', 'snapchat', 'tumblr', 'youtube', 'viadeo', 'google-plus-g', 'whatsapp',
 		'generic', 'home', 'hrm', 'members', 'products', 'invoicing',
 		'partnership', 'payment', 'payment_vat', 'pencil-ruler', 'pictoconfirm', 'preview', 'project', 'projectpub', 'projecttask', 'question', 'refresh', 'region',
 		'salary', 'shipment', 'state', 'supplier_invoice', 'supplier_invoicea', 'supplier_invoicer', 'supplier_invoiced',
 		'technic', 'ticket',
 		'error', 'warning',
-		'recent', 'reception', 'recruitmentcandidature', 'recruitmentjobposition', 'replacement', 'resource', 'recurring', 'rss',
+		'recent', 'reception', 'recruitmentcandidature', 'recruitmentjobposition', 'replacement', 'resource', 'recurring','rss',
 		'shapes', 'skill', 'square', 'sort-numeric-down', 'status', 'stop-circle', 'supplier', 'supplier_proposal', 'supplier_order', 'supplier_invoice',
 		'terminal', 'tick', 'timespent', 'title_setup', 'title_accountancy', 'title_bank', 'title_hrm', 'title_agenda', 'trip',
 		'uncheck', 'undo', 'url', 'user-cog', 'user-injured', 'user-md', 'vat', 'website', 'workstation', 'webhook', 'world', 'private',
@@ -6051,7 +6051,7 @@ function info_admin($text, $infoonimgalt = 0, $nodiv = 0, $admin = '1', $morecss
 		if ($picto == 'warning') {
 			$fa = 'exclamation-triangle';
 		}
-		$result = ($nodiv ? '' : '<div class="wordbreak '.$class.($morecss ? ' '.$morecss : '').($textfordropdown ? ' hidden' : '').'">').'<span class="fa fa-'.$fa.'" title="'.dol_escape_htmltag($admin ? $langs->trans('InfoAdmin') : $langs->trans('Note')).'"></span> ';
+		$result = ($nodiv ? '' : '<div class="wordbreakall '.$class.($morecss ? ' '.$morecss : '').($textfordropdown ? ' hidden' : '').'">').'<span class="fa fa-'.$fa.'" title="'.dol_escape_htmltag($admin ? $langs->trans('InfoAdmin') : $langs->trans('Note')).'"></span> ';
 		$result .= dol_escape_htmltag($text, 1, 0, 'div,span,b,br,a');
 		$result .= ($nodiv ? '' : '</div>');
 
@@ -12452,7 +12452,7 @@ function colorIsLight($stringcolor)
  * Function to test if an entry is enabled or not
  *
  * @param	int<0,1>	$type_user					0=We test for internal user, 1=We test for external user
- * @param	array{enabled:int<0,1>,module:string,perms:string} $menuentry	Array for feature entry to test
+ * @param	array{enabled:int<0,1>,module?:string,perms:string} $menuentry	Array for feature entry to test
  * @param	string[]	$listofmodulesforexternal	Array with list of modules allowed to external users
  * @return	int<0,2>								0=Hide, 1=Show, 2=Show gray
  */
@@ -12465,7 +12465,7 @@ function isVisibleToUserType($type_user, &$menuentry, &$listofmodulesforexternal
 	if (empty($menuentry['enabled'])) {
 		return 0; // Entry disabled by condition
 	}
-	if ($type_user && $menuentry['module']) {
+	if ($type_user && array_key_exists('module', $menuentry) && $menuentry['module']) {
 		$tmploops = explode('|', $menuentry['module']);
 		$found = 0;
 		foreach ($tmploops as $tmploop) {
