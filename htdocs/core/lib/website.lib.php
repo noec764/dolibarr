@@ -779,13 +779,13 @@ function getStructuredData($type, $data = array())
 
 			$pageurl = $websitepage->pageurl;
 			$title = $websitepage->title;
-			$image = $websitepage->image;
+			$image = getImageFromHtmlContent($websitepage->content);
 			$companyname = $mysoc->name;
 			$description = $websitepage->description;
 
 			$pageurl = str_replace('__WEBSITE_KEY__', $website->ref, $pageurl);
 			$title = str_replace('__WEBSITE_KEY__', $website->ref, $title);
-			$image = '/medias'.(preg_match('/^\//', $image) ? '' : '/').str_replace('__WEBSITE_KEY__', $website->ref, $image);
+			$imagepath = '/medias'.(preg_match('/^\//', $image) ? '' : '/').str_replace('__WEBSITE_KEY__', $website->ref, $image);
 			$companyname = str_replace('__WEBSITE_KEY__', $website->ref, $companyname);
 			$description = str_replace('__WEBSITE_KEY__', $website->ref, $description);
 
@@ -798,10 +798,14 @@ function getStructuredData($type, $data = array())
 				    "@type": "WebPage",
 				    "@id": "'.dol_escape_json($pageurl).'"
 				  },
-				  "headline": "'.dol_escape_json($title).'",
+				  "headline": "'.dol_escape_json($title).'",';
+			if ($image) {
+				$ret .= '
 				  "image": [
-				    "'.dol_escape_json($image).'"
-				   ],
+				    "'.dol_escape_json($imagepath).'"
+				   ],';
+			}
+			$ret .= '
 				  "dateCreated": "'.dol_print_date($websitepage->date_creation, 'dayhourrfc').'",
 				  "datePublished": "'.dol_print_date($websitepage->date_creation, 'dayhourrfc').'",
 				  "dateModified": "'.dol_print_date($websitepage->date_modification, 'dayhourrfc').'",
@@ -814,7 +818,7 @@ function getStructuredData($type, $data = array())
 				     "name": "'.dol_escape_json($companyname).'",
 				     "logo": {
 				        "@type": "ImageObject",
-				        "url": "/wrapper.php?modulepart=mycompany&file=logos%2F'.urlencode($mysoc->logo).'"
+				        "url": "/wrapper.php?modulepart=mycompany&file='.urlencode('logos/'.$mysoc->logo).'"
 				     }
 				   },'."\n";
 			if ($websitepage->keywords) {
@@ -1076,10 +1080,11 @@ function getNbOfImagePublicURLOfObject($object)
  * @param	Object	$object			Object
  * @param	int		$no				Numero of image (if there is several images. 1st one by default)
  * @param   string  $extName        Extension to differentiate thumb file name ('', '_small', '_mini')
+ * @param	int		$cover			1=Add a filter on field "cover", 0=Exclude "cover" images, -1=No filter
  * @return  string					HTML img content or '' if no image found
  * @see getNbOfImagePublicURLOfObject(), getPublicFilesOfObject(), getImageFromHtmlContent()
  */
-function getImagePublicURLOfObject($object, $no = 1, $extName = '')
+function getImagePublicURLOfObject($object, $no = 1, $extName = '', $cover = -1)
 {
 	global $db;
 
@@ -1094,6 +1099,7 @@ function getImagePublicURLOfObject($object, $no = 1, $extName = '')
 	$sql .= " WHERE entity IN (".getEntity($object->element).")";
 	$sql .= " AND src_object_type = '".$db->escape($object->element)."' AND src_object_id = ".((int) $object->id);	// Filter on object
 	$sql .= " AND ".$db->regexpsql('filename', $regexforimg, 1);
+	$sql .= ($cover >= 0 ? " AND cover = ".((int) $cover) : "");
 	$sql .= $db->order("cover,position,rowid", "ASC,ASC,ASC");
 
 	$resql = $db->query($sql);
