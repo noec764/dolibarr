@@ -772,7 +772,7 @@ class Fichinter extends CommonObject
 	 *	Function used when fichinter is reopend after being closed.
 	 *
 	 *	@param      User	$user       Object user that change status
-	 *	@return     int         		<0 if KO, 0 if nothing is done, >0 if OK
+	 *	@return     int 	Return integer < 0 if KO, 0 if nothing is done, > 0 if OK
 	 */
 	public function setReopen($user)
 	{
