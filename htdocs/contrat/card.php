@@ -2280,7 +2280,7 @@ if ($action == 'create') {
 						'enabled' => true,
 					);
 				}
-				if (isModEnabled('ficheinter') && $object->statut > 0) {
+				if (isModEnabled('intervention') && $object->statut > 0) {
 					$langs->load("interventions");
 					$arrayofcreatebutton[] = array(
 						'url' => '/fichinter/card.php?action=create&origin='.$object->element.'&contratid='.$object->id.'&socid='.$object->thirdparty->id,
